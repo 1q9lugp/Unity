@@ -28,36 +28,84 @@ public class PlanetEncounterManager : MonoBehaviour
     int  _idx;
     bool _roundCleared, _extraLifeUsed;
 
+    // Game Over Fields
+    GameObject _gameOverPanel;
+    Text       _gameOverTitleTxt, _gameOverSubTxt;
+    Button     _retryBtn, _menuBtn;
+
     static readonly Color[] SC = {
         Color.red, Color.blue, Color.cyan, Color.red,
         Color.yellow, Color.blue, Color.gray, Color.green
     };
 
     void Awake() { BuildRuntimeUI(); }
-void Start()
-{
-    _lives = FindObjectOfType<LivesManager>();
-    if (_lives != null) _lives.onAllLivesLost = OnLivesGone;
-    if (bgRenderer == null) { var bg = GameObject.Find("Background"); if (bg) bgRenderer = bg.GetComponent<SpriteRenderer>(); }
-    if (planets == null || planets.Length != 8)
+
+    void Start()
     {
-        planets = new PlanetEncounter[]
+        _lives = FindObjectOfType<LivesManager>();
+        if (_lives != null) _lives.onAllLivesLost = OnLivesGone;
+        if (bgRenderer == null) { var bg = GameObject.Find("Background"); if (bg) bgRenderer = bg.GetComponent<SpriteRenderer>(); }
+        if (planets == null || planets.Length != 8)
         {
-            new PlanetEncounter{planetName="Kepler-186f",  rejectionMessage="Oxygen levels incompatible with human biology.",                 rows=2,cols=4,formationSpeed=1.2f,enemyFireRate=3.5f,enemyPrefabTier=1,hasBoss=false},
-            new PlanetEncounter{planetName="Proxima b",    rejectionMessage="Surface radiation would prove fatal within hours.",              rows=2,cols=5,formationSpeed=1.4f,enemyFireRate=3.2f,enemyPrefabTier=1,hasBoss=false},
-            new PlanetEncounter{planetName="Tau Ceti e",   rejectionMessage="Atmospheric pressure far exceeds human tolerance.",              rows=3,cols=4,formationSpeed=1.6f,enemyFireRate=3.0f,enemyPrefabTier=1,hasBoss=false},
-            new PlanetEncounter{planetName="Gliese 667Cc", rejectionMessage="Already colonized. We would not impose upon its people.",       rows=3,cols=5,formationSpeed=1.8f,enemyFireRate=2.8f,enemyPrefabTier=2,hasBoss=false},
-            new PlanetEncounter{planetName="Wolf 1061c",   rejectionMessage="Tidal locking makes half the surface uninhabitable.",           rows=3,cols=5,formationSpeed=2.0f,enemyFireRate=2.5f,enemyPrefabTier=2,hasBoss=false},
-            new PlanetEncounter{planetName="Trappist-1e",  rejectionMessage="Magnetic field too weak. Cosmic radiation is constant.",        rows=4,cols=5,formationSpeed=2.2f,enemyFireRate=2.2f,enemyPrefabTier=2,hasBoss=true},
-            new PlanetEncounter{planetName="Luyten b",     rejectionMessage="Gravity is 1.8x Earth normal. Humans would be crushed.",       rows=4,cols=6,formationSpeed=2.4f,enemyFireRate=2.0f,enemyPrefabTier=3,hasBoss=true},
-            new PlanetEncounter{planetName="Ross 128b",    rejectionMessage="No liquid water. No soil. No memory. Not our home.",            rows=4,cols=6,formationSpeed=2.8f,enemyFireRate=1.8f,enemyPrefabTier=3,hasBoss=true},
-        };
+            planets = new PlanetEncounter[]
+            {
+                new PlanetEncounter{planetName="Kepler-186f",  rejectionMessage="Oxygen levels incompatible with human biology.",                 rows=2,cols=4,formationSpeed=1.2f,enemyFireRate=3.5f,enemyPrefabTier=1,hasBoss=false},
+                new PlanetEncounter{planetName="Proxima b",    rejectionMessage="Surface radiation would prove fatal within hours.",              rows=2,cols=5,formationSpeed=1.4f,enemyFireRate=3.2f,enemyPrefabTier=1,hasBoss=false},
+                new PlanetEncounter{planetName="Tau Ceti e",   rejectionMessage="Atmospheric pressure far exceeds human tolerance.",              rows=3,cols=4,formationSpeed=1.6f,enemyFireRate=3.0f,enemyPrefabTier=1,hasBoss=false},
+                new PlanetEncounter{planetName="Gliese 667Cc", rejectionMessage="Already colonized. We would not impose upon its people.",       rows=3,cols=5,formationSpeed=1.8f,enemyFireRate=2.8f,enemyPrefabTier=2,hasBoss=false},
+                new PlanetEncounter{planetName="Wolf 1061c",   rejectionMessage="Tidal locking makes half the surface uninhabitable.",           rows=3,cols=5,formationSpeed=2.0f,enemyFireRate=2.5f,enemyPrefabTier=2,hasBoss=false},
+                new PlanetEncounter{planetName="Trappist-1e",  rejectionMessage="Magnetic field too weak. Cosmic radiation is constant.",        rows=4,cols=5,formationSpeed=2.2f,enemyFireRate=2.2f,enemyPrefabTier=2,hasBoss=true},
+                new PlanetEncounter{planetName="Luyten b",     rejectionMessage="Gravity is 1.8x Earth normal. Humans would be crushed.",       rows=4,cols=6,formationSpeed=2.4f,enemyFireRate=2.0f,enemyPrefabTier=3,hasBoss=true},
+                new PlanetEncounter{planetName="Ross 128b",    rejectionMessage="No liquid water. No soil. No memory. Not our home.",            rows=4,cols=6,formationSpeed=2.8f,enemyFireRate=1.8f,enemyPrefabTier=3,hasBoss=true},
+            };
+        }
+        StartCoroutine(GameLoop());
     }
-    StartCoroutine(GameLoop());
-}    void OnLivesGone() { if (!_extraLifeUsed) StartCoroutine(JesusReveal()); else StartCoroutine(RetryPlanet()); }
+
+    void OnLivesGone()
+    {
+        if (!_extraLifeUsed) StartCoroutine(JesusReveal());
+        else StartCoroutine(ShowGameOver());
+    }
+
     public void OnRoundCleared() { _roundCleared = true; }
 
-IEnumerator ExtraMsg()
+    IEnumerator ShowGameOver()
+    {
+        Time.timeScale = 0f;
+        if (player != null) player.gameObject.SetActive(false);
+        if (_gameOverPanel != null)
+        {
+            if (_gameOverSubTxt != null)
+                _gameOverSubTxt.text = (_idx < planets.Length)
+                    ? "Defeated at " + planets[_idx].planetName
+                    : "The mission has failed.";
+
+            _gameOverPanel.SetActive(true);
+            _gameOverPanel.transform.SetAsLastSibling();
+
+            if (_retryBtn != null)
+            {
+                _retryBtn.onClick.RemoveAllListeners();
+                _retryBtn.onClick.AddListener(() => {
+                    _gameOverPanel.SetActive(false);
+                    Time.timeScale = 1f;
+                    if (player != null) player.gameObject.SetActive(true);
+                    _extraLifeUsed = false;
+                    StartCoroutine(RetryPlanet());
+                });
+            }
+
+            if (_menuBtn != null)
+            {
+                _menuBtn.onClick.RemoveAllListeners();
+                _menuBtn.onClick.AddListener(() => { Time.timeScale = 1f; SceneManager.LoadScene(0); });
+            }
+        }
+        yield return null;
+    }
+
+    IEnumerator ExtraMsg()
     {
         if (_announceTxt!=null){_announceTxt.text="ASHTAR SHERAN \u2014 ONE FINAL CHANCE";_announceTxt.color=new Color(1f,0.85f,0.1f,1f);_announceTxt.fontSize=36;}
         yield return new WaitForSeconds(2.5f);
@@ -93,75 +141,63 @@ IEnumerator ExtraMsg()
         yield return StartCoroutine(LandingPhase(p));
     }
 
-IEnumerator JesusReveal()
-{
-    // FREEZE enemies immediately — before the image even appears
-    Time.timeScale = 0f;
-
-    if (_jesusImg != null)
+    IEnumerator JesusReveal()
     {
-        if (jesusSprite != null) _jesusImg.sprite = jesusSprite;
-        // Stretch to fill entire canvas with no padding
-        _jesusImg.preserveAspect = false;
-        var jrt = _jesusImg.rectTransform;
-        jrt.anchorMin = Vector2.zero;
-        jrt.anchorMax = Vector2.one;
-        jrt.offsetMin = Vector2.zero;
-        jrt.offsetMax = Vector2.zero;
-        // Bring above the FadeOverlay so nothing clips it
-        _jesusImg.transform.SetAsLastSibling();
-        _jesusImg.gameObject.SetActive(true);
-        _jesusImg.color = new Color(1f, 1f, 1f, 0f);
-        // Fade in to SEMI-TRANSPARENT (alpha 0.78) using unscaled time
-        const float targetAlpha = 0.78f;
-        for (float t = 0f; t < 0.6f; t += Time.unscaledDeltaTime)
+        Time.timeScale = 0f;
+        if (_jesusImg != null)
         {
-            _jesusImg.color = new Color(1f, 1f, 1f, Mathf.Lerp(0f, targetAlpha, t / 0.6f));
-            yield return null;
+            if (jesusSprite != null) _jesusImg.sprite = jesusSprite;
+            _jesusImg.preserveAspect = false;
+            var jrt = _jesusImg.rectTransform;
+            jrt.anchorMin = Vector2.zero; jrt.anchorMax = Vector2.one;
+            jrt.offsetMin = Vector2.zero; jrt.offsetMax = Vector2.zero;
+            _jesusImg.transform.SetAsLastSibling();
+            _jesusImg.gameObject.SetActive(true);
+            _jesusImg.color = new Color(1f, 1f, 1f, 0f);
+            const float targetAlpha = 0.78f;
+            for (float t = 0f; t < 0.6f; t += Time.unscaledDeltaTime)
+            {
+                _jesusImg.color = new Color(1f, 1f, 1f, Mathf.Lerp(0f, targetAlpha, t / 0.6f));
+                yield return null;
+            }
+            _jesusImg.color = new Color(1f, 1f, 1f, targetAlpha);
         }
-        _jesusImg.color = new Color(1f, 1f, 1f, targetAlpha);
-    }
-
-    if (_announceTxt != null)
-    {
-        _announceTxt.text = "ASHTAR SHERAN \u2014 ONE FINAL CHANCE";
-        _announceTxt.color = new Color(1f, 0.85f, 0.1f, 1f);
-        _announceTxt.fontSize = 34;
-        _announceTxt.transform.SetAsLastSibling();
-    }
-    if (_jesusPromptTxt != null)
-    {
-        _jesusPromptTxt.transform.SetAsLastSibling();
-        _jesusPromptTxt.gameObject.SetActive(true);
-    }
-
-    // Wait for player click/key — unscaled so input works while timeScale=0
-    yield return null;
-    yield return new WaitUntil(() =>
-        Input.GetMouseButtonDown(0) || Input.GetMouseButtonDown(1) ||
-        Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return) ||
-        Input.GetKeyDown(KeyCode.E));
-
-    // Restore time BEFORE fade-out so normal deltaTime works
-    Time.timeScale = 1f;
-    if (_jesusPromptTxt != null) _jesusPromptTxt.gameObject.SetActive(false);
-    if (_announceTxt != null) { _announceTxt.text = ""; _announceTxt.color = Color.clear; }
-
-    if (_jesusImg != null)
-    {
-        float startA = _jesusImg.color.a;
-        for (float t = 0f; t < 0.5f; t += Time.deltaTime)
+        if (_announceTxt != null)
         {
-            _jesusImg.color = new Color(1f, 1f, 1f, Mathf.Lerp(startA, 0f, t / 0.5f));
-            yield return null;
+            _announceTxt.text = "ASHTAR SHERAN \u2014 ONE FINAL CHANCE";
+            _announceTxt.color = new Color(1f, 0.85f, 0.1f, 1f);
+            _announceTxt.fontSize = 34;
+            _announceTxt.transform.SetAsLastSibling();
         }
-        _jesusImg.color = new Color(1f, 1f, 1f, 0f);
-        _jesusImg.gameObject.SetActive(false);
+        if (_jesusPromptTxt != null)
+        {
+            _jesusPromptTxt.transform.SetAsLastSibling();
+            _jesusPromptTxt.gameObject.SetActive(true);
+        }
+        yield return null;
+        yield return new WaitUntil(() =>
+            Input.GetMouseButtonDown(0) || Input.GetMouseButtonDown(1) ||
+            Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return) ||
+            Input.GetKeyDown(KeyCode.E));
+        Time.timeScale = 1f;
+        if (_jesusPromptTxt != null) _jesusPromptTxt.gameObject.SetActive(false);
+        if (_announceTxt != null) { _announceTxt.text = ""; _announceTxt.color = Color.clear; }
+        if (_jesusImg != null)
+        {
+            float startA = _jesusImg.color.a;
+            for (float t = 0f; t < 0.5f; t += Time.deltaTime)
+            {
+                _jesusImg.color = new Color(1f, 1f, 1f, Mathf.Lerp(startA, 0f, t / 0.5f));
+                yield return null;
+            }
+            _jesusImg.color = new Color(1f, 1f, 1f, 0f);
+            _jesusImg.gameObject.SetActive(false);
+        }
+        _extraLifeUsed = true;
+        if (_lives != null) { _lives.lives = 1; _lives.RefreshHearts(); }
     }
 
-    _extraLifeUsed = true;
-    if (_lives != null) { _lives.lives = 1; _lives.RefreshHearts(); }
-}    IEnumerator CombatPhase(PlanetEncounter p) { _roundCleared=false; LaunchFormation(p); yield return new WaitUntil(()=>_roundCleared); if(_fgo){Destroy(_fgo);_fgo=null;} }
+    IEnumerator CombatPhase(PlanetEncounter p) { _roundCleared=false; LaunchFormation(p); yield return new WaitUntil(()=>_roundCleared); if(_fgo){Destroy(_fgo);_fgo=null;} }
 
     IEnumerator LandingPhase(PlanetEncounter p)
     {
@@ -252,6 +288,59 @@ IEnumerator JesusReveal()
         var jpr=jpg.AddComponent<RectTransform>();jpr.anchorMin=new Vector2(0f,0f);jpr.anchorMax=new Vector2(1f,0f);jpr.pivot=new Vector2(0.5f,0f);jpr.anchoredPosition=new Vector2(0f,20f);jpr.sizeDelta=new Vector2(0f,30f);
         _jesusPromptTxt=jpg.AddComponent<Text>();_jesusPromptTxt.font=f;_jesusPromptTxt.fontSize=20;_jesusPromptTxt.fontStyle=FontStyle.Bold;_jesusPromptTxt.alignment=TextAnchor.MiddleCenter;_jesusPromptTxt.color=Color.yellow;_jesusPromptTxt.text="\u25ba  click / space / E to continue";
         jpg.SetActive(false);
+
+        BuildGameOverPanel(cv.transform, f);
         fo.transform.SetAsLastSibling();
+    }
+
+    void BuildGameOverPanel(Transform canvasRoot, Font f)
+    {
+        var gop = new GameObject("GameOverPanel");
+        gop.transform.SetParent(canvasRoot, false);
+        _gameOverPanel = gop;
+        var gopr = gop.AddComponent<RectTransform>();
+        gopr.anchorMin = Vector2.zero; gopr.anchorMax = Vector2.one;
+        gopr.offsetMin = Vector2.zero; gopr.offsetMax = Vector2.zero;
+        gop.AddComponent<Image>().color = new Color(0f, 0f, 0.04f, 0.93f);
+        _gameOverTitleTxt = MakeText(gop.transform, "GOTitle",
+            new Vector2(0f,0.62f), new Vector2(1f,0.78f), f, 72,
+            FontStyle.Bold, TextAnchor.MiddleCenter, new Color(1f,0.18f,0.18f,1f), "GAME OVER");
+        _gameOverSubTxt = MakeText(gop.transform, "GOSub",
+            new Vector2(0.1f,0.50f), new Vector2(0.9f,0.62f), f, 26,
+            FontStyle.Italic, TextAnchor.MiddleCenter, new Color(0.85f,0.85f,0.85f,1f), "");
+        _retryBtn = MakeButton(gop.transform, "RETRY",
+            new Vector2(0.25f,0.28f), new Vector2(0.47f,0.42f),
+            new Color(0.10f,0.45f,0.10f,1f), f);
+        _menuBtn = MakeButton(gop.transform, "MAIN MENU",
+            new Vector2(0.53f,0.28f), new Vector2(0.75f,0.42f),
+            new Color(0.40f,0.10f,0.10f,1f), f);
+        gop.SetActive(false);
+        gop.transform.SetAsLastSibling();
+    }
+
+    static Text MakeText(Transform parent, string name, Vector2 aMin, Vector2 aMax,
+        Font font, int size, FontStyle style, TextAnchor align, Color col, string text)
+    {
+        var go = new GameObject(name); go.transform.SetParent(parent, false);
+        var rt = go.AddComponent<RectTransform>();
+        rt.anchorMin = aMin; rt.anchorMax = aMax; rt.offsetMin = Vector2.zero; rt.offsetMax = Vector2.zero;
+        var t = go.AddComponent<Text>();
+        t.font=font; t.fontSize=size; t.fontStyle=style; t.alignment=align; t.color=col; t.text=text;
+        return t;
+    }
+
+    static Button MakeButton(Transform parent, string label, Vector2 aMin, Vector2 aMax, Color bgCol, Font font)
+    {
+        var go = new GameObject(label+"Btn"); go.transform.SetParent(parent, false);
+        var rt = go.AddComponent<RectTransform>();
+        rt.anchorMin=aMin; rt.anchorMax=aMax; rt.offsetMin=Vector2.zero; rt.offsetMax=Vector2.zero;
+        var img = go.AddComponent<Image>(); img.color = bgCol;
+        var btn = go.AddComponent<Button>();
+        var cb = ColorBlock.defaultColorBlock;
+        cb.highlightedColor = new Color(Mathf.Min(bgCol.r+.15f,1f),Mathf.Min(bgCol.g+.15f,1f),Mathf.Min(bgCol.b+.15f,1f));
+        cb.pressedColor     = new Color(Mathf.Max(bgCol.r-.15f,0f),Mathf.Max(bgCol.g-.15f,0f),Mathf.Max(bgCol.b-.15f,0f));
+        btn.colors=cb; btn.targetGraphic=img;
+        MakeText(go.transform,"Lbl",Vector2.zero,Vector2.one,font,28,FontStyle.Bold,TextAnchor.MiddleCenter,Color.white,label);
+        return btn;
     }
 }

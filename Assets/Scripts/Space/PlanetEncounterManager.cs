@@ -28,8 +28,9 @@ public class PlanetEncounterManager : MonoBehaviour
     int  _idx;
     bool _roundCleared, _extraLifeUsed;
 
-    // Game Over Fields
+    // Game Over UI Fields
     GameObject _gameOverPanel;
+    Image      _gameOverBgImg;
     Text       _gameOverTitleTxt, _gameOverSubTxt;
     Button     _retryBtn, _menuBtn;
 
@@ -76,10 +77,14 @@ public class PlanetEncounterManager : MonoBehaviour
         if (player != null) player.gameObject.SetActive(false);
         if (_gameOverPanel != null)
         {
+            if (_gameOverBgImg != null && jesusSprite != null)
+            {
+                _gameOverBgImg.sprite = jesusSprite;
+                _gameOverBgImg.color = new Color(1f, 1f, 1f, 0.75f); // Increased solidity
+            }
+
             if (_gameOverSubTxt != null)
-                _gameOverSubTxt.text = (_idx < planets.Length)
-                    ? "Defeated at " + planets[_idx].planetName
-                    : "The mission has failed.";
+                _gameOverSubTxt.text = "Mé dítě, vstaň a zkus to znovu. Dávám ti život — žij a poraz ty ještěry!";
 
             _gameOverPanel.SetActive(true);
             _gameOverPanel.transform.SetAsLastSibling();
@@ -154,7 +159,7 @@ public class PlanetEncounterManager : MonoBehaviour
             _jesusImg.transform.SetAsLastSibling();
             _jesusImg.gameObject.SetActive(true);
             _jesusImg.color = new Color(1f, 1f, 1f, 0f);
-            const float targetAlpha = 0.78f;
+            const float targetAlpha = 0.75f; // Increased solidity
             for (float t = 0f; t < 0.6f; t += Time.unscaledDeltaTime)
             {
                 _jesusImg.color = new Color(1f, 1f, 1f, Mathf.Lerp(0f, targetAlpha, t / 0.6f));
@@ -301,19 +306,30 @@ public class PlanetEncounterManager : MonoBehaviour
         var gopr = gop.AddComponent<RectTransform>();
         gopr.anchorMin = Vector2.zero; gopr.anchorMax = Vector2.one;
         gopr.offsetMin = Vector2.zero; gopr.offsetMax = Vector2.zero;
-        gop.AddComponent<Image>().color = new Color(0f, 0f, 0.04f, 0.93f);
+        
+        _gameOverBgImg = gop.AddComponent<Image>();
+        _gameOverBgImg.preserveAspect = false;
+        _gameOverBgImg.color = Color.clear;
+        
+        // Title: Top Center
         _gameOverTitleTxt = MakeText(gop.transform, "GOTitle",
-            new Vector2(0f,0.62f), new Vector2(1f,0.78f), f, 72,
+            new Vector2(0f,0.80f), new Vector2(1f,0.95f), f, 72,
             FontStyle.Bold, TextAnchor.MiddleCenter, new Color(1f,0.18f,0.18f,1f), "GAME OVER");
+
+        // SubText (Custom Text): Set to Black and pushed to absolute bottom area
         _gameOverSubTxt = MakeText(gop.transform, "GOSub",
-            new Vector2(0.1f,0.50f), new Vector2(0.9f,0.62f), f, 26,
-            FontStyle.Italic, TextAnchor.MiddleCenter, new Color(0.85f,0.85f,0.85f,1f), "");
+            new Vector2(0.05f,0.10f), new Vector2(0.95f,0.20f), f, 22,
+            FontStyle.Italic, TextAnchor.MiddleCenter, Color.black, "");
+
+        // Buttons: Absolute Bottom, solid opacity (0.85f)
         _retryBtn = MakeButton(gop.transform, "RETRY",
-            new Vector2(0.25f,0.28f), new Vector2(0.47f,0.42f),
-            new Color(0.10f,0.45f,0.10f,1f), f);
+            new Vector2(0.42f,0.02f), new Vector2(0.49f,0.08f),
+            new Color(0.10f,0.45f,0.10f,0.85f), f);
+
         _menuBtn = MakeButton(gop.transform, "MAIN MENU",
-            new Vector2(0.53f,0.28f), new Vector2(0.75f,0.42f),
-            new Color(0.40f,0.10f,0.10f,1f), f);
+            new Vector2(0.51f,0.02f), new Vector2(0.58f,0.08f),
+            new Color(0.40f,0.10f,0.10f,0.85f), f);
+
         gop.SetActive(false);
         gop.transform.SetAsLastSibling();
     }
@@ -337,10 +353,11 @@ public class PlanetEncounterManager : MonoBehaviour
         var img = go.AddComponent<Image>(); img.color = bgCol;
         var btn = go.AddComponent<Button>();
         var cb = ColorBlock.defaultColorBlock;
-        cb.highlightedColor = new Color(Mathf.Min(bgCol.r+.15f,1f),Mathf.Min(bgCol.g+.15f,1f),Mathf.Min(bgCol.b+.15f,1f));
-        cb.pressedColor     = new Color(Mathf.Max(bgCol.r-.15f,0f),Mathf.Max(bgCol.g-.15f,0f),Mathf.Max(bgCol.b-.15f,0f));
+        cb.normalColor = bgCol;
+        cb.highlightedColor = new Color(bgCol.r+.1f, bgCol.g+.1f, bgCol.b+.1f, 0.95f);
+        cb.pressedColor     = Color.white;
         btn.colors=cb; btn.targetGraphic=img;
-        MakeText(go.transform,"Lbl",Vector2.zero,Vector2.one,font,28,FontStyle.Bold,TextAnchor.MiddleCenter,Color.white,label);
+        MakeText(go.transform,"Lbl",Vector2.zero,Vector2.one,font,18,FontStyle.Bold,TextAnchor.MiddleCenter,Color.white,label);
         return btn;
     }
 }

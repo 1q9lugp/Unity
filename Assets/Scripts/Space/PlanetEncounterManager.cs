@@ -95,37 +95,72 @@ IEnumerator ExtraMsg()
 
 IEnumerator JesusReveal()
 {
+    // FREEZE enemies immediately — before the image even appears
+    Time.timeScale = 0f;
+
     if (_jesusImg != null)
     {
         if (jesusSprite != null) _jesusImg.sprite = jesusSprite;
+        // Stretch to fill entire canvas with no padding
+        _jesusImg.preserveAspect = false;
+        var jrt = _jesusImg.rectTransform;
+        jrt.anchorMin = Vector2.zero;
+        jrt.anchorMax = Vector2.one;
+        jrt.offsetMin = Vector2.zero;
+        jrt.offsetMax = Vector2.zero;
+        // Bring above the FadeOverlay so nothing clips it
+        _jesusImg.transform.SetAsLastSibling();
         _jesusImg.gameObject.SetActive(true);
-        for (float t = 0f; t < 0.5f; t += Time.deltaTime)
+        _jesusImg.color = new Color(1f, 1f, 1f, 0f);
+        // Fade in to SEMI-TRANSPARENT (alpha 0.78) using unscaled time
+        const float targetAlpha = 0.78f;
+        for (float t = 0f; t < 0.6f; t += Time.unscaledDeltaTime)
         {
-            _jesusImg.color = new Color(1f,1f,1f,t/0.5f);
+            _jesusImg.color = new Color(1f, 1f, 1f, Mathf.Lerp(0f, targetAlpha, t / 0.6f));
             yield return null;
         }
-        _jesusImg.color = Color.white;
+        _jesusImg.color = new Color(1f, 1f, 1f, targetAlpha);
     }
-    if (_announceTxt != null) { _announceTxt.text="ASHTAR SHERAN \u2014 ONE FINAL CHANCE"; _announceTxt.color=new Color(1f,0.85f,0.1f,1f); _announceTxt.fontSize=34; }
-    if (_jesusPromptTxt != null) _jesusPromptTxt.gameObject.SetActive(true);
-    Time.timeScale = 0f;
+
+    if (_announceTxt != null)
+    {
+        _announceTxt.text = "ASHTAR SHERAN \u2014 ONE FINAL CHANCE";
+        _announceTxt.color = new Color(1f, 0.85f, 0.1f, 1f);
+        _announceTxt.fontSize = 34;
+        _announceTxt.transform.SetAsLastSibling();
+    }
+    if (_jesusPromptTxt != null)
+    {
+        _jesusPromptTxt.transform.SetAsLastSibling();
+        _jesusPromptTxt.gameObject.SetActive(true);
+    }
+
+    // Wait for player click/key — unscaled so input works while timeScale=0
     yield return null;
-    yield return new WaitUntil(()=>Input.GetMouseButtonDown(0)||Input.GetMouseButtonDown(1)||Input.GetKeyDown(KeyCode.Space)||Input.GetKeyDown(KeyCode.Return)||Input.GetKeyDown(KeyCode.E));
+    yield return new WaitUntil(() =>
+        Input.GetMouseButtonDown(0) || Input.GetMouseButtonDown(1) ||
+        Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return) ||
+        Input.GetKeyDown(KeyCode.E));
+
+    // Restore time BEFORE fade-out so normal deltaTime works
     Time.timeScale = 1f;
     if (_jesusPromptTxt != null) _jesusPromptTxt.gameObject.SetActive(false);
+    if (_announceTxt != null) { _announceTxt.text = ""; _announceTxt.color = Color.clear; }
+
     if (_jesusImg != null)
     {
-        for (float t = 0f; t < 0.5f; t += Time.unscaledDeltaTime)
+        float startA = _jesusImg.color.a;
+        for (float t = 0f; t < 0.5f; t += Time.deltaTime)
         {
-            _jesusImg.color = new Color(1f,1f,1f,1f-t/0.5f);
+            _jesusImg.color = new Color(1f, 1f, 1f, Mathf.Lerp(startA, 0f, t / 0.5f));
             yield return null;
         }
-        _jesusImg.color = Color.clear;
+        _jesusImg.color = new Color(1f, 1f, 1f, 0f);
         _jesusImg.gameObject.SetActive(false);
     }
-    if (_announceTxt != null) { _announceTxt.text=""; _announceTxt.color=Color.clear; }
+
     _extraLifeUsed = true;
-    if (_lives != null) { _lives.lives=1; _lives.RefreshHearts(); }
+    if (_lives != null) { _lives.lives = 1; _lives.RefreshHearts(); }
 }    IEnumerator CombatPhase(PlanetEncounter p) { _roundCleared=false; LaunchFormation(p); yield return new WaitUntil(()=>_roundCleared); if(_fgo){Destroy(_fgo);_fgo=null;} }
 
     IEnumerator LandingPhase(PlanetEncounter p)

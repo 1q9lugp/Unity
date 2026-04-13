@@ -19,7 +19,7 @@ public class PlanetEncounterManager : MonoBehaviour
     public SharaShipController player;
     public SpriteRenderer bgRenderer;
     public PlanetEncounter[] planets = new PlanetEncounter[0];
-    public Sprite ashtarIconSprite, ptaahIconSprite, jesusSprite;
+    public Sprite ashtarIconSprite, ptaahIconSprite, jesusSprite, lizardIconSprite;
 
     [Header("Backgrounds")]
     public Sprite[] spaceBackgrounds  = new Sprite[8];  // one per planet — combat phase
@@ -142,6 +142,7 @@ public class PlanetEncounterManager : MonoBehaviour
 
     IEnumerator GameLoop()
     {
+        yield return StartCoroutine(IntroDialogue());
         for (_idx=0;_idx<planets.Length;_idx++) yield return StartCoroutine(RunPlanet());
         yield return StartCoroutine(EndingSequence());
     }
@@ -234,6 +235,22 @@ public class PlanetEncounterManager : MonoBehaviour
         yield return StartCoroutine(FadeTo(1f,0f,0.8f));
     }
 
+    IEnumerator IntroDialogue()
+    {
+        // Pre-combat briefing: Ashtar, Ptaah, and the Lizard representative
+        yield return StartCoroutine(FadeTo(0f, 1f, 0.5f));
+        if (bgRenderer != null) bgRenderer.color = new Color(0.03f, 0.05f, 0.12f);
+        yield return StartCoroutine(FadeTo(1f, 0f, 0.8f));
+        yield return StartCoroutine(ShowDlg("PTAAH: Commander Ashtar. Our long-range sensors have identified eight candidate worlds within reach. All show signs of potential habitability for the human species.", 0f));
+        yield return StartCoroutine(ShowDlg("ASHTAR: Understood, Ptaah. Earth's people need a new home. We will not fail them.", 0f));
+        yield return StartCoroutine(ShowDlg("LIZARD: You will not find what you seek, Sheran. These worlds are ours to control. Your mission ends here.", 0f));
+        yield return StartCoroutine(ShowDlg("ASHTAR: Then we will meet you at every world, and we will push through every one of them.", 0f));
+        yield return StartCoroutine(ShowDlg("PTAAH: Defensive formations incoming. Weapons hot. Commander — begin the approach.", 0f));
+        if (_dialogueBg != null) _dialogueBg.gameObject.SetActive(false);
+        if (_speakerIcon != null) _speakerIcon.enabled = false;
+        if (_dialogueTxt != null) _dialogueTxt.text = "";
+    }
+
     IEnumerator EndingSequence()
     {
         if (_planetNameTxt!=null)_planetNameTxt.gameObject.SetActive(false);
@@ -255,7 +272,7 @@ public class PlanetEncounterManager : MonoBehaviour
     IEnumerator ShowDlg(string msg,float hold)
     {
         if (_dialogueBg!=null)_dialogueBg.gameObject.SetActive(true);
-        if (_speakerIcon!=null){bool a=msg.StartsWith("ASHTAR:");bool b=msg.StartsWith("PTAAH:");_speakerIcon.sprite=a?ashtarIconSprite:(b?ptaahIconSprite:null);_speakerIcon.enabled=_speakerIcon.sprite!=null;}
+        if (_speakerIcon!=null){bool a=msg.StartsWith("ASHTAR:");bool b=msg.StartsWith("PTAAH:");bool liz=msg.StartsWith("LIZARD:");_speakerIcon.sprite=a?ashtarIconSprite:(b?ptaahIconSprite:(liz?lizardIconSprite:null));_speakerIcon.enabled=_speakerIcon.sprite!=null;}
         if (_dialogueTxt!=null)_dialogueTxt.text=msg;
         if (_promptTxt!=null)_promptTxt.gameObject.SetActive(true);
         yield return null;
@@ -282,14 +299,14 @@ public class PlanetEncounterManager : MonoBehaviour
         _planetNameTxt=ng.AddComponent<Text>();_planetNameTxt.font=f;_planetNameTxt.fontSize=24;_planetNameTxt.fontStyle=FontStyle.Bold;_planetNameTxt.color=Color.white;_planetNameTxt.text="";
         ng.SetActive(false);
         var dp=new GameObject("DialoguePanel");dp.transform.SetParent(cv.transform,false);
-        var dr=dp.AddComponent<RectTransform>();dr.anchorMin=new Vector2(0f,0f);dr.anchorMax=new Vector2(1f,0f);dr.pivot=new Vector2(0.5f,0f);dr.anchoredPosition=Vector2.zero;dr.sizeDelta=new Vector2(0f,90f);
+        var dr=dp.AddComponent<RectTransform>();dr.anchorMin=new Vector2(0f,0f);dr.anchorMax=new Vector2(1f,0f);dr.pivot=new Vector2(0.5f,0f);dr.anchoredPosition=Vector2.zero;dr.sizeDelta=new Vector2(0f,200f);
         _dialogueBg=dp.AddComponent<Image>();_dialogueBg.color=new Color(0f,0f,0f,0.85f);dp.SetActive(false);
         var ig=new GameObject("SpeakerIcon");ig.transform.SetParent(dp.transform,false);
-        var ir=ig.AddComponent<RectTransform>();ir.anchorMin=new Vector2(0f,0f);ir.anchorMax=new Vector2(0f,1f);ir.pivot=new Vector2(0f,0.5f);ir.offsetMin=new Vector2(10f,5f);ir.offsetMax=new Vector2(90f,-5f);
+        var ir=ig.AddComponent<RectTransform>();ir.anchorMin=new Vector2(0f,0f);ir.anchorMax=new Vector2(0f,1f);ir.pivot=new Vector2(0f,0.5f);ir.offsetMin=new Vector2(10f,5f);ir.offsetMax=new Vector2(210f,-5f);
         _speakerIcon=ig.AddComponent<Image>();_speakerIcon.preserveAspect=true;_speakerIcon.enabled=false;
         var dtg=new GameObject("DialogueText");dtg.transform.SetParent(dp.transform,false);
-        var dtr=dtg.AddComponent<RectTransform>();dtr.anchorMin=Vector2.zero;dtr.anchorMax=Vector2.one;dtr.offsetMin=new Vector2(105f,8f);dtr.offsetMax=new Vector2(-20f,-8f);
-        _dialogueTxt=dtg.AddComponent<Text>();_dialogueTxt.font=f;_dialogueTxt.fontSize=22;_dialogueTxt.fontStyle=FontStyle.Italic;_dialogueTxt.alignment=TextAnchor.MiddleLeft;_dialogueTxt.color=new Color(0.95f,0.95f,0.8f,1f);_dialogueTxt.text="";
+        var dtr=dtg.AddComponent<RectTransform>();dtr.anchorMin=Vector2.zero;dtr.anchorMax=Vector2.one;dtr.offsetMin=new Vector2(225f,8f);dtr.offsetMax=new Vector2(-20f,-8f);
+        _dialogueTxt=dtg.AddComponent<Text>();_dialogueTxt.font=f;_dialogueTxt.fontSize=44;_dialogueTxt.fontStyle=FontStyle.Italic;_dialogueTxt.alignment=TextAnchor.MiddleLeft;_dialogueTxt.color=new Color(0.95f,0.95f,0.8f,1f);_dialogueTxt.text="";
         var ptg=new GameObject("PromptText");ptg.transform.SetParent(dp.transform,false);
         var ptr=ptg.AddComponent<RectTransform>();ptr.anchorMin=new Vector2(1f,0f);ptr.anchorMax=new Vector2(1f,0f);ptr.pivot=new Vector2(1f,0f);ptr.anchoredPosition=new Vector2(-14f,8f);ptr.sizeDelta=new Vector2(300f,24f);
         _promptTxt=ptg.AddComponent<Text>();_promptTxt.font=f;_promptTxt.fontSize=16;_promptTxt.fontStyle=FontStyle.Bold;_promptTxt.alignment=TextAnchor.LowerRight;_promptTxt.color=Color.yellow;_promptTxt.text="\u25ba  click / space / E";

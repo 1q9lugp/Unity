@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: f704498e4b8d1c823a62447305c3af5f
+guid: 7c6b79245805bfa3b813c299096e36b1
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -5735970445282527426
-    second: AshtarIcon_0
+      213: 3943170875798510401
+    second: LizardIcon_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -100,13 +100,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: AshtarIcon_0
+      name: LizardIcon_0
       rect:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 302
-        height: 511
+        width: 285
+        height: 384
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -115,8 +115,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: e37bbce354db560b0800000000000000
-      internalID: -5735970445282527426
+      spriteID: 14bd2ac0505f8b630800000000000000
+      internalID: 3943170875798510401
       vertices: []
       indices: 
       edges: []
@@ -135,7 +135,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      AshtarIcon_0: -5735970445282527426
+      LizardIcon_0: 3943170875798510401
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

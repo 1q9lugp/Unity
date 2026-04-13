@@ -248,6 +248,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SlideshowController
   slides:
   - image: {fileID: 3737710227173360637, guid: 771b1564dfed3dcadaebaca019640c14, type: 3}
+    text: 
+    holdDuration: 4
+  - image: {fileID: 3737710227173360637, guid: 771b1564dfed3dcadaebaca019640c14, type: 3}
     text: "Byl to ten osudn\xFD den... kdy se z dosud neprob\xE1dan\xFDch hlubin
       Zem\u011B vyno\u0159ili ONI."
     holdDuration: 4
@@ -268,10 +271,6 @@ MonoBehaviour:
     holdDuration: 4
   - image: {fileID: 6439937546259419087, guid: 415d87b5bcd22a8f68989d9c7e38ac0c, type: 3}
     text: "...a vydali se s n\xE1mi hledat nov\xFD domov."
-    holdDuration: 4
-  - image: {fileID: -3696679523906601131, guid: 6ca93067c12f606ab8979c4add5b1e54, type: 3}
-    text: There is only one planet in the known galaxy whose air, water and memory
-      belong to this species.
     holdDuration: 4
   slideImage: {fileID: 1530718962}
   slideText: {fileID: 633308190}

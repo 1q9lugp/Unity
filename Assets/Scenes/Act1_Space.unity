@@ -774,6 +774,7 @@ MonoBehaviour:
   ashtarIconSprite: {fileID: 143602204399339903, guid: 8ea37208056f550bf8444a370da24778, type: 3}
   ptaahIconSprite: {fileID: -4945034886227390701, guid: 82d072fb00665099db8306f8dfd8c5ba, type: 3}
   jesusSprite: {fileID: 8763367191202173492, guid: f9e378d519c82a4bab6b231b04ec3752, type: 3}
+  lizardIconSprite: {fileID: 3943170875798510401, guid: 7c6b79245805bfa3b813c299096e36b1, type: 3}
   spaceBackgrounds:
   - {fileID: 586674179231224976, guid: b5b019c3bd8fb2d11861b7f11a16eddc, type: 3}
   - {fileID: 572767749066804928, guid: 193a817a0b48c9b44840cc4124617c99, type: 3}

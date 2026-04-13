@@ -21,6 +21,10 @@ public class PlanetEncounterManager : MonoBehaviour
     public PlanetEncounter[] planets = new PlanetEncounter[0];
     public Sprite ashtarIconSprite, ptaahIconSprite, jesusSprite;
 
+    [Header("Backgrounds")]
+    public Sprite[] spaceBackgrounds  = new Sprite[8];  // one per planet — combat phase
+    public Sprite[] planetBackgrounds = new Sprite[8];  // one per planet — landing phase
+
     Image  _fade, _dialogueBg, _speakerIcon, _jesusImg;
     Text   _counterTxt, _announceTxt, _dialogueTxt, _planetNameTxt, _promptTxt, _jesusPromptTxt;
     LivesManager _lives;
@@ -59,6 +63,14 @@ public class PlanetEncounterManager : MonoBehaviour
                 new PlanetEncounter{planetName="Luyten b",     rejectionMessage="Gravity is 1.8x Earth normal. Humans would be crushed.",       rows=4,cols=6,formationSpeed=2.4f,enemyFireRate=2.0f,enemyPrefabTier=3,hasBoss=true},
                 new PlanetEncounter{planetName="Ross 128b",    rejectionMessage="No liquid water. No soil. No memory. Not our home.",            rows=4,cols=6,formationSpeed=2.8f,enemyFireRate=1.8f,enemyPrefabTier=3,hasBoss=true},
             };
+        }
+        // Stamp sprites into the struct data at runtime
+        for (int i = 0; i < planets.Length; i++)
+        {
+            var tmp = planets[i];
+            if (spaceBackgrounds  != null && i < spaceBackgrounds.Length  && spaceBackgrounds[i]  != null) tmp.spaceBackground   = spaceBackgrounds[i];
+            if (planetBackgrounds != null && i < planetBackgrounds.Length && planetBackgrounds[i] != null) tmp.surfaceBackground = planetBackgrounds[i];
+            planets[i] = tmp;
         }
         StartCoroutine(GameLoop());
     }

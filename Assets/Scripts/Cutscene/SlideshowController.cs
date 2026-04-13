@@ -58,6 +58,7 @@ public class SlideshowController : MonoBehaviour
             // Setup slide
             if (slideImage != null) {
                 slideImage.sprite = slide.image;
+                slideImage.preserveAspect = false;
                 // Fade image in quickly or keep it static
                 StartCoroutine(FadeImage(1f, 0.5f)); 
             }
@@ -77,7 +78,7 @@ public class SlideshowController : MonoBehaviour
             yield return StartCoroutine(FadeAll(0f, 0.5f));
         }
 
-        SceneManager.LoadScene(1);
+        SceneManager.LoadScene("Act1_Space");
     }
 
     private IEnumerator TypeText(string fullText)

@@ -356,6 +356,7 @@ GameObject:
   m_Component:
   - component: {fileID: 335256537}
   - component: {fileID: 335256536}
+  - component: {fileID: 335256538}
   m_Layer: 0
   m_Name: Background
   m_TagString: Untagged
@@ -420,7 +421,7 @@ SpriteRenderer:
   m_Size: {x: 8.65, y: 6.2}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
 --- !u!4 &335256537
 Transform:
@@ -437,6 +438,18 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &335256538
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 335256535}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 034f49c32b9318e4ab36f8ba6149735f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BackgroundScaler
 --- !u!1 &498179851
 GameObject:
   m_ObjectHideFlags: 0
@@ -761,6 +774,24 @@ MonoBehaviour:
   ashtarIconSprite: {fileID: 143602204399339903, guid: 8ea37208056f550bf8444a370da24778, type: 3}
   ptaahIconSprite: {fileID: -4945034886227390701, guid: 82d072fb00665099db8306f8dfd8c5ba, type: 3}
   jesusSprite: {fileID: 8763367191202173492, guid: f9e378d519c82a4bab6b231b04ec3752, type: 3}
+  spaceBackgrounds:
+  - {fileID: 586674179231224976, guid: b5b019c3bd8fb2d11861b7f11a16eddc, type: 3}
+  - {fileID: 572767749066804928, guid: 193a817a0b48c9b44840cc4124617c99, type: 3}
+  - {fileID: -8119561737465346280, guid: 0ca21abf00887b456b84d2027bf39f18, type: 3}
+  - {fileID: -3434959637086362500, guid: 262fcf3759383eb97a203c1dfeb9f899, type: 3}
+  - {fileID: 1689759336389352125, guid: e55047d0e40dc0a829f21134cb494a6a, type: 3}
+  - {fileID: -7404445291513195844, guid: a48ba151c60ae2f2cbf4a84ccb827ae7, type: 3}
+  - {fileID: -158964034454375275, guid: 3cb275b07440537ec88c09d26b8b31fa, type: 3}
+  - {fileID: 7947218289285913541, guid: a4b391909c0e4b943bb360bea4a03a90, type: 3}
+  planetBackgrounds:
+  - {fileID: 1083342839640337065, guid: 6e195a2a2fb85d167882c88e543af48a, type: 3}
+  - {fileID: -5030074716426363386, guid: b0d3be62f38acabed9f6fe26e0dbf67b, type: 3}
+  - {fileID: 3196775917663855328, guid: ccda9dbbc96646684933b30627572e5b, type: 3}
+  - {fileID: 7340311367418988779, guid: 4b3d23f07fb02f047b9d3559f029dfc7, type: 3}
+  - {fileID: 2874830358496310213, guid: 62fb4c8bbeddbf240a98d0f621441936, type: 3}
+  - {fileID: 1144011335660825493, guid: 9caf13ef16479b26f97bcf1662ed4a88, type: 3}
+  - {fileID: -6319503630669710441, guid: 02443f479836a967ba371b4762326c4c, type: 3}
+  - {fileID: -2437013418991285458, guid: e787137199394f8418e8f73a90ed67b3, type: 3}
 --- !u!4 &936263449
 Transform:
   m_ObjectHideFlags: 0

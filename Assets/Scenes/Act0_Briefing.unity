@@ -251,39 +251,35 @@ MonoBehaviour:
     text: "Byl to ten osudn\xFD den... kdy se z dosud neprob\xE1dan\xFDch hlubin
       Zem\u011B vyno\u0159ili ONI."
     holdDuration: 4
-    fadeDuration: 1
   - image: {fileID: -5123171323181275130, guid: e9b92e2ca3a58a1e8a1b7cc0351909d8, type: 3}
     text: "Je\u0161t\u011B\u0159i z pekel, kte\u0159\xED netou\u017E\xED po ni\u010Dem
       jin\xE9m ne\u017E po krvi a \u010Dipizaci!"
     holdDuration: 4
-    fadeDuration: 1
   - image: {fileID: 8323388267017229953, guid: bfac4ec1ca6aab8e591a397047fb4d58, type: 3}
-    text: "Nastolili nad lidmi krutovl\xE1du \\u017eelezem, krv\xED a samoz\\u0159ejm\\u011b
-      \\u010dipy."
+    text: "Nastolili nad lidmi krutovl\xE1du \u017Eelezem,krv\xED a samoz\u0159ejm\u011B
+      i \u010Dipy."
     holdDuration: 4
-    fadeDuration: 1
   - image: {fileID: 3862033774578782488, guid: c9cfa9f69abf807958a7f19fe91e5cec, type: 3}
     text: "Kdy\u017E u\u017E byla v\u0161echna nad\u011Bje ztracena, objevili se
       na\u0161i spasitel\xE9... Vesm\xEDrn\xED lid\xE9!"
     holdDuration: 4
-    fadeDuration: 1
   - image: {fileID: -3696679523906601131, guid: 6ca93067c12f606ab8979c4add5b1e54, type: 3}
     text: "P\u0159ipravili pl\xE1n na evakuaci lidstva z planety Zem\u011B..."
     holdDuration: 4
-    fadeDuration: 1
   - image: {fileID: 6439937546259419087, guid: 415d87b5bcd22a8f68989d9c7e38ac0c, type: 3}
     text: "...a vydali se s n\xE1mi hledat nov\xFD domov."
     holdDuration: 4
-    fadeDuration: 1
   - image: {fileID: -3696679523906601131, guid: 6ca93067c12f606ab8979c4add5b1e54, type: 3}
     text: There is only one planet in the known galaxy whose air, water and memory
       belong to this species.
     holdDuration: 4
-    fadeDuration: 1
   slideImage: {fileID: 1530718962}
   slideText: {fileID: 633308190}
+  typeSpeed: 0.05
   musicSource: {fileID: 61639343}
   backgroundMusic: {fileID: 0}
+  sfxSource: {fileID: 0}
+  typeSound: {fileID: 0}
 --- !u!4 &61639345
 Transform:
   m_ObjectHideFlags: 0

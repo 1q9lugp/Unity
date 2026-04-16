@@ -6,38 +6,27 @@ using UnityEngine.EventSystems;
 
 public class TitleScreenManager : MonoBehaviour
 {
+    [Header("Visuals")]
+    public Sprite backgroundSprite;
+
     [Header("Audio")]
     public AudioClip backgroundMusic;
 
-    [Header("Handoff")]
-    public GameObject slideshowManager;
-    public string     nextScene = "Act1_Space";
+    [Header("Flow")]
+    public string nextScene = "Act0_Briefing";
 
-    Canvas        _cv;
-    Image         _fadeImg;
-    RectTransform _titleRT;
-    bool          _starting;
-
-    const float PULSE_MIN   = 0.92f;
-    const float PULSE_MAX   = 1.08f;
-    const float PULSE_SPEED = 1.5f;
+    Image _fadeImg;
+    bool  _starting;
 
     void Awake()
     {
         EnsureEventSystem();
-        BuildTitleUI();
+        BuildUI();
         StartAudio();
-        if (slideshowManager != null) slideshowManager.SetActive(false);
     }
 
     void Update()
     {
-        if (_titleRT != null)
-        {
-            float s = Mathf.Lerp(PULSE_MIN, PULSE_MAX,
-                (Mathf.Sin(Time.time * PULSE_SPEED * Mathf.PI * 2f) + 1f) * 0.5f);
-            _titleRT.localScale = new Vector3(s, s, 1f);
-        }
         if (!_starting && (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return)))
             OnStartClicked();
     }
@@ -46,10 +35,10 @@ public class TitleScreenManager : MonoBehaviour
     {
         if (_starting) return;
         _starting = true;
-        StartCoroutine(FadeAndHandOff());
+        StartCoroutine(FadeAndLoad());
     }
 
-    IEnumerator FadeAndHandOff()
+    IEnumerator FadeAndLoad()
     {
         for (float t = 0f; t < 0.8f; t += Time.deltaTime)
         {
@@ -57,52 +46,43 @@ public class TitleScreenManager : MonoBehaviour
             yield return null;
         }
         if (_fadeImg) _fadeImg.color = Color.black;
-        if (slideshowManager != null)
-        {
-            slideshowManager.SetActive(true);
-            _cv.gameObject.SetActive(false);
-            gameObject.SetActive(false);
-        }
-        else SceneManager.LoadScene(nextScene);
+        SceneManager.LoadScene(nextScene);
     }
 
-    void BuildTitleUI()
+    void BuildUI()
     {
         var cvGo = new GameObject("TitleCanvas");
-        _cv = cvGo.AddComponent<Canvas>();
-        _cv.renderMode = RenderMode.ScreenSpaceOverlay; _cv.sortingOrder = 10;
+        var cv   = cvGo.AddComponent<Canvas>();
+        cv.renderMode   = RenderMode.ScreenSpaceOverlay;
+        cv.sortingOrder = 10;
         var scaler = cvGo.AddComponent<CanvasScaler>();
-        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.uiScaleMode         = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(1920, 1080);
         cvGo.AddComponent<GraphicRaycaster>();
-        Font fnt = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        Add<Image>("BG", _cv.transform, Vector2.zero, Vector2.one).color = new Color(0.03f, 0.03f, 0.10f, 1f);
-        _titleRT = AddRT("TitleHolder", _cv.transform, new Vector2(0f,0.54f), new Vector2(1f,0.90f));
-        var tTxt = _titleRT.gameObject.AddComponent<Text>();
-        tTxt.font = fnt; tTxt.fontSize = 118; tTxt.fontStyle = FontStyle.Bold;
-        tTxt.alignment = TextAnchor.MiddleCenter; tTxt.color = new Color(1f,0.88f,0.28f,1f); tTxt.text = "ASHTAR";
-        var sTxt = Add<Text>("Subtitle", _cv.transform, new Vector2(0.1f,0.46f), new Vector2(0.9f,0.55f));
-        sTxt.font = fnt; sTxt.fontSize = 30; sTxt.fontStyle = FontStyle.Italic;
-        sTxt.alignment = TextAnchor.MiddleCenter; sTxt.color = new Color(0.70f,0.80f,1f,1f);
-        sTxt.text = "A GALACTIC MISSION"; sTxt.raycastTarget = false;
-        var btnRT = AddRT("StartBtn", _cv.transform, new Vector2(0.36f,0.26f), new Vector2(0.64f,0.38f));
-        var btnImg = btnRT.gameObject.AddComponent<Image>(); btnImg.color = new Color(0.10f,0.38f,0.75f,0.92f);
-        var btn = btnRT.gameObject.AddComponent<Button>();
-        var bCB = ColorBlock.defaultColorBlock;
-        bCB.normalColor = new Color(0.10f,0.38f,0.75f,0.92f);
-        bCB.highlightedColor = new Color(0.22f,0.55f,1.00f,1.00f);
-        bCB.pressedColor = new Color(0.05f,0.20f,0.50f,1.00f);
-        btn.colors = bCB; btn.targetGraphic = btnImg; btn.onClick.AddListener(OnStartClicked);
-        var lblTxt = Add<Text>("Label", btnRT, Vector2.zero, Vector2.one);
-        lblTxt.font = fnt; lblTxt.fontSize = 46; lblTxt.fontStyle = FontStyle.Bold;
-        lblTxt.alignment = TextAnchor.MiddleCenter; lblTxt.color = Color.white; lblTxt.text = "START";
-        var hTxt = Add<Text>("Hint", _cv.transform, new Vector2(0.2f,0.14f), new Vector2(0.8f,0.22f));
-        hTxt.font = fnt; hTxt.fontSize = 20; hTxt.fontStyle = FontStyle.Italic;
-        hTxt.alignment = TextAnchor.MiddleCenter; hTxt.color = new Color(0.5f,0.5f,0.5f,0.9f);
-        hTxt.text = "click START  \u2022  Space  \u2022  Enter"; hTxt.raycastTarget = false;
-        var foImg = Add<Image>("FadeOverlay", _cv.transform, Vector2.zero, Vector2.one);
-        foImg.color = new Color(0f,0f,0f,0f); foImg.raycastTarget = false;
-        foImg.transform.SetAsLastSibling(); _fadeImg = foImg;
+
+        var bgImg = MakeImg("BG", cv.transform, Vector2.zero, Vector2.one);
+        if (backgroundSprite != null) { bgImg.sprite = backgroundSprite; bgImg.color = Color.white; bgImg.preserveAspect = false; }
+        else bgImg.color = new Color(0.05f, 0.05f, 0.05f, 1f);
+
+        Font fnt  = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        var btnRT = MakeRT("StartBtn", cv.transform, new Vector2(0.35f, 0.12f), new Vector2(0.65f, 0.24f));
+        var bi    = btnRT.gameObject.AddComponent<Image>();
+        bi.color  = new Color(0.10f, 0.38f, 0.75f, 0.92f);
+        var btn   = btnRT.gameObject.AddComponent<Button>();
+        var cb    = ColorBlock.defaultColorBlock;
+        cb.normalColor      = new Color(0.10f, 0.38f, 0.75f, 0.92f);
+        cb.highlightedColor = new Color(0.22f, 0.55f, 1.00f, 1.00f);
+        cb.pressedColor     = new Color(0.05f, 0.20f, 0.50f, 1.00f);
+        btn.colors = cb; btn.targetGraphic = bi;
+        btn.onClick.AddListener(OnStartClicked);
+        var lbl = MakeRT("Label", btnRT, Vector2.zero, Vector2.one).gameObject.AddComponent<Text>();
+        lbl.font = fnt; lbl.fontSize = 52; lbl.fontStyle = FontStyle.Bold;
+        lbl.alignment = TextAnchor.MiddleCenter; lbl.color = Color.white; lbl.text = "START";
+
+        var fade = MakeImg("FadeOverlay", cv.transform, Vector2.zero, Vector2.one);
+        fade.color = new Color(0f, 0f, 0f, 0f); fade.raycastTarget = false;
+        fade.transform.SetAsLastSibling();
+        _fadeImg = fade;
     }
 
     void StartAudio()
@@ -119,18 +99,17 @@ public class TitleScreenManager : MonoBehaviour
         es.AddComponent<EventSystem>(); es.AddComponent<StandaloneInputModule>();
     }
 
-    static RectTransform AddRT(string name, Transform parent, Vector2 aMin, Vector2 aMax)
+    static RectTransform MakeRT(string name, Transform parent, Vector2 aMin, Vector2 aMax)
     {
-        var go = new GameObject(name);
-        go.transform.SetParent(parent, false);
+        var go = new GameObject(name); go.transform.SetParent(parent, false);
         var rt = go.AddComponent<RectTransform>();
         rt.anchorMin = aMin; rt.anchorMax = aMax;
         rt.offsetMin = Vector2.zero; rt.offsetMax = Vector2.zero;
         return rt;
     }
 
-    static T Add<T>(string name, Transform parent, Vector2 aMin, Vector2 aMax) where T : Component
+    static Image MakeImg(string name, Transform parent, Vector2 aMin, Vector2 aMax)
     {
-        return AddRT(name, parent, aMin, aMax).gameObject.AddComponent<T>();
+        return MakeRT(name, parent, aMin, aMax).gameObject.AddComponent<Image>();
     }
 }

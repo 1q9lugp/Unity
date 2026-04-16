@@ -248,9 +248,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SlideshowController
   slides:
   - image: {fileID: 3737710227173360637, guid: 771b1564dfed3dcadaebaca019640c14, type: 3}
-    text: 
-    holdDuration: 4
-  - image: {fileID: 3737710227173360637, guid: 771b1564dfed3dcadaebaca019640c14, type: 3}
     text: "Byl to ten osudn\xFD den... kdy se z dosud neprob\xE1dan\xFDch hlubin
       Zem\u011B vyno\u0159ili ONI."
     holdDuration: 4
@@ -276,7 +273,7 @@ MonoBehaviour:
   slideText: {fileID: 633308190}
   typeSpeed: 0.05
   musicSource: {fileID: 61639343}
-  backgroundMusic: {fileID: 0}
+  backgroundMusic: {fileID: 8300000, guid: 57a636832feff360494fd6911703925c, type: 3}
   sfxSource: {fileID: 0}
   typeSound: {fileID: 0}
 --- !u!4 &61639345

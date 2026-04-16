@@ -285,9 +285,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7d62256e750aa476d903c5f758c25a52, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TitleScreenManager
+  backgroundSprite: {fileID: 21300000, guid: 2a2096abc202aa481a66983ac312679d, type: 3}
   backgroundMusic: {fileID: 0}
-  slideshowManager: {fileID: 0}
-  nextScene: Act1_Space
+  nextScene: Act0_Briefing
 --- !u!4 &1213851305
 Transform:
   m_ObjectHideFlags: 0

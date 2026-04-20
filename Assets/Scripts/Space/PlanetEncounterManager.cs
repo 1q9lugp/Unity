@@ -28,7 +28,7 @@ public class PlanetEncounterManager : MonoBehaviour
     [Header("Music")]
     public AudioClip combatMusic;
     public AudioClip dialogueMusic;
-    AudioSource _mus;
+    public AudioClip cinematicSong;    AudioSource _mus;
 
     Image _fade, _dialogueBg, _speakerIcon, _jesusImg;
     Text _counterTxt, _announceTxt, _dialogueTxt, _planetNameTxt, _promptTxt;
@@ -249,24 +249,35 @@ public class PlanetEncounterManager : MonoBehaviour
     }
 
     IEnumerator EndingSequence()
+{
+    if (_planetNameTxt != null) _planetNameTxt.gameObject.SetActive(false);
+    if (_counterTxt != null) _counterTxt.text = "";
+    yield return StartCoroutine(FadeTo(0f, 1f, 0.8f));
+    if (bgRenderer != null) bgRenderer.color = Color.black;
+    yield return StartCoroutine(FadeTo(1f, 0f, 0.5f));
+    SwitchMusic(dialogueMusic);
+    yield return StartCoroutine(ShowDlg("PTAAH: Veliteli. Osm světů prozkoumáno. Osm zamítnutí zaznamenáno.", 0f));
+    yield return StartCoroutine(ShowDlg("PTAAH: Existuje pouze jedna planeta, která patří tomuto druhu.", 0f));
+    yield return StartCoroutine(ShowDlg("AŠTAR: Máte pravdu...", 0f));
+    yield return StartCoroutine(ShowDlg("AŠTAR: Nastavte kurz...", 0f));
+
+    // Start cinematic song on the last line — persists into Act2 via DontDestroyOnLoad
+    if (cinematicSong != null)
     {
-        if (_planetNameTxt != null) _planetNameTxt.gameObject.SetActive(false);
-        if (_counterTxt != null) _counterTxt.text = "";
-        yield return StartCoroutine(FadeTo(0f, 1f, 0.8f));
-        if (bgRenderer != null) bgRenderer.color = Color.black;
-        yield return StartCoroutine(FadeTo(1f, 0f, 0.5f));
-        SwitchMusic(dialogueMusic);
-        yield return StartCoroutine(ShowDlg("PTAAH: Veliteli. Osm světů prozkoumáno. Osm zamítnutí zaznamenáno.", 0f));
-        yield return StartCoroutine(ShowDlg("PTAAH: Existuje pouze jedna planeta, která patří tomuto druhu.", 0f));
-        yield return StartCoroutine(ShowDlg("AŠTAR: Máte pravdu...", 0f));
-        yield return StartCoroutine(ShowDlg("AŠTAR: Nastavte kurz...", 0f));
-        yield return StartCoroutine(ShowDlg("AŠTAR: ZEMĚ.", 0f));
-        CloseDlg();
-        yield return StartCoroutine(FadeTo(0f, 1f, 1f));
-        SceneManager.LoadScene(2);
+        var carrier = new GameObject("CinematicMusic");
+        DontDestroyOnLoad(carrier);
+        var src = carrier.AddComponent<AudioSource>();
+        src.clip = cinematicSong; src.time = 15f; src.volume = 0.8f; src.loop = false;
+        src.Play();
+        if (_mus != null) _mus.Stop();
     }
 
-    IEnumerator Panel(string txt, float dur, int sz) { if (_announceTxt != null) { _announceTxt.text = txt; _announceTxt.color = Color.white; _announceTxt.fontSize = sz; } yield return new WaitForSeconds(dur); if (_announceTxt != null) { _announceTxt.text = ""; _announceTxt.color = Color.clear; } }
+    yield return StartCoroutine(ShowDlg("AŠTAR: ZEMĚ.", 0f));
+    CloseDlg();
+    yield return StartCoroutine(FadeTo(0f, 1f, 1f));
+    SceneManager.LoadScene(3); // was 2 (bug) — now correctly goes to Act2_Transition
+}
+
 
     IEnumerator ShowDlg(string msg, float hold)
     {

@@ -5,31 +5,25 @@ using UnityEngine.SceneManagement;
 
 public class Act2Controller : MonoBehaviour
 {
-    public AudioClip music;
+    // Assigned by PlanetEncounterManager before the scene transition
+    public static AudioSource CinematicMusic;
 
-    static readonly string[] Frames =
-    {
-        "AŠTAR: Nastavte kurz...",
-        "AŠTAR: ZEMĚ."
-    };
+    // Original track timestamps
+    const float Drop1 = 25f; // "Nastavte kurz..."
+    const float Drop2 = 30f; // "ZEMĚ!"
 
     Text _label;
 
     void Start()
     {
         BuildUI();
-        if (music != null)
-        {
-            var a = gameObject.AddComponent<AudioSource>();
-            a.clip = music; a.loop = true; a.volume = 0.7f; a.Play();
-        }
         StartCoroutine(ShowFrames());
     }
 
     void BuildUI()
     {
         var cvGo = new GameObject("Canvas");
-        var cv   = cvGo.AddComponent<Canvas>();
+        var cv = cvGo.AddComponent<Canvas>();
         cv.renderMode = RenderMode.ScreenSpaceOverlay;
         cvGo.AddComponent<CanvasScaler>();
         cvGo.AddComponent<GraphicRaycaster>();
@@ -57,16 +51,27 @@ public class Act2Controller : MonoBehaviour
 
     IEnumerator ShowFrames()
     {
-        foreach (var line in Frames)
+        if (CinematicMusic != null)
         {
-            _label.text = line;
-            yield return null;
-            yield return new WaitUntil(() =>
-                Input.GetMouseButtonDown(0) ||
-                Input.GetKeyDown(KeyCode.Space)  ||
-                Input.GetKeyDown(KeyCode.Return) ||
-                Input.GetKeyDown(KeyCode.E));
+            // Wait for drop 1 (track hits 25s) → show frame 1
+            yield return new WaitUntil(() => CinematicMusic.time >= Drop1);
+            _label.text = "AŠTAR: Nastavte kurz...";
+
+            // Wait for drop 2 (track hits 30s) → show frame 2
+            yield return new WaitUntil(() => CinematicMusic.time >= Drop2);
+            _label.text = "AŠTAR: ZEMĚ!";
+
+            yield return new WaitForSeconds(3f);
         }
+        else
+        {
+            // Fallback if launched without going through Act1
+            _label.text = "AŠTAR: Nastavte kurz...";
+            yield return new WaitForSeconds(5f);
+            _label.text = "AŠTAR: ZEMĚ!";
+            yield return new WaitForSeconds(3f);
+        }
+
         SceneManager.LoadScene(4);
     }
 }

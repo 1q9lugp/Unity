@@ -25,6 +25,11 @@ public class PlanetEncounterManager : MonoBehaviour
     public Sprite[] spaceBackgrounds = new Sprite[8];
     public Sprite[] planetBackgrounds = new Sprite[8];
 
+    [Header("Music")]
+    public AudioClip combatMusic;
+    public AudioClip dialogueMusic;
+    AudioSource _mus;
+
     Image _fade, _dialogueBg, _speakerIcon, _jesusImg;
     Text _counterTxt, _announceTxt, _dialogueTxt, _planetNameTxt, _promptTxt;
     Button _retryBtn, _menuBtn;
@@ -42,13 +47,19 @@ public class PlanetEncounterManager : MonoBehaviour
 
     void Start()
     {
+        _mus = GetComponent<AudioSource>();
+        if (_mus == null) _mus = gameObject.AddComponent<AudioSource>();
+        _mus.loop = true;
+        _mus.playOnAwake = false;
+
         _lives = FindObjectOfType<LivesManager>();
         if (_lives != null) _lives.onAllLivesLost = OnLivesGone;
         if (bgRenderer == null) { var bg = GameObject.Find("Background"); if (bg) bgRenderer = bg.GetComponent<SpriteRenderer>(); }
+        
         if (planets == null || planets.Length != 8)
         {
             planets = new PlanetEncounter[]
-                 {
+            {
                 new PlanetEncounter{planetName="Kepler-186f",  rejectionMessage="Hladina kyslíku není slučitelná s lidskou biologií.",                 rows=2,cols=4,formationSpeed=1.2f,enemyFireRate=3.5f,enemyPrefabTier=1,hasBoss=false},
                 new PlanetEncounter{planetName="Proxima b",    rejectionMessage="Povrchová radiace by se během několika hodin ukázala jako smrtelná.", rows=2,cols=5,formationSpeed=1.4f,enemyFireRate=3.2f,enemyPrefabTier=1,hasBoss=false},
                 new PlanetEncounter{planetName="Tau Ceti e",   rejectionMessage="Atmosférický tlak zdaleka přesahuje lidskou toleranci.",              rows=3,cols=4,formationSpeed=1.6f,enemyFireRate=3.0f,enemyPrefabTier=1,hasBoss=false},
@@ -57,8 +68,9 @@ public class PlanetEncounterManager : MonoBehaviour
                 new PlanetEncounter{planetName="Trappist-1e",  rejectionMessage="Magnetické pole je příliš slabé. Kosmické záření je konstantní.",      rows=4,cols=5,formationSpeed=2.2f,enemyFireRate=2.2f,enemyPrefabTier=2,hasBoss=true},
                 new PlanetEncounter{planetName="Luyten b",     rejectionMessage="Gravitace je silnější než na Zemi. Lidé by byli rozdrceni.",     rows=4,cols=6,formationSpeed=2.4f,enemyFireRate=2.0f,enemyPrefabTier=3,hasBoss=true},
                 new PlanetEncounter{planetName="Ross 128b",    rejectionMessage="Žádná kapalná voda. Žádná půda.",  rows=4,cols=6,formationSpeed=2.8f,enemyFireRate=1.8f,enemyPrefabTier=3,hasBoss=true},
-                 };
+            };
         }
+        
         for (int i = 0; i < planets.Length; i++)
         {
             var tmp = planets[i];
@@ -176,7 +188,14 @@ public class PlanetEncounterManager : MonoBehaviour
         yield return StartCoroutine(LandingPhase(p));
     }
 
-    IEnumerator CombatPhase(PlanetEncounter p) { _roundCleared = false; LaunchFormation(p); yield return new WaitUntil(() => _roundCleared); if (_fgo) { Destroy(_fgo); _fgo = null; } }
+    IEnumerator CombatPhase(PlanetEncounter p) 
+    { 
+        SwitchMusic(combatMusic);
+        _roundCleared = false; 
+        LaunchFormation(p); 
+        yield return new WaitUntil(() => _roundCleared); 
+        if (_fgo) { Destroy(_fgo); _fgo = null; } 
+    }
 
     IEnumerator LandingPhase(PlanetEncounter p)
     {
@@ -193,6 +212,7 @@ public class PlanetEncounterManager : MonoBehaviour
         }
         yield return StartCoroutine(FadeTo(1f, 0f, 0.8f));
 
+        SwitchMusic(dialogueMusic);
         if (_planetNameTxt != null)
         {
             _planetNameTxt.text = p.planetName;
@@ -212,13 +232,14 @@ public class PlanetEncounterManager : MonoBehaviour
             bgRenderer.color = Color.white;
         }
         yield return StartCoroutine(FadeTo(1f, 0f, 0.8f));
-    } // <--- OPRAVENO: Chybějící závorka zde!
+    }
 
     IEnumerator IntroDialogue()
     {
         yield return StartCoroutine(FadeTo(0f, 1f, 0.5f));
         if (bgRenderer != null) bgRenderer.color = new Color(0.03f, 0.05f, 0.12f);
         yield return StartCoroutine(FadeTo(1f, 0f, 0.8f));
+        SwitchMusic(dialogueMusic);
         yield return StartCoroutine(ShowDlg("PTAAH: Veliteli Aštare. Naše senzory dlouhého dosahu identifikovaly osm kandidátních světů v dosahu. Všechny vykazují známky potenciální obyvatelnosti pro lidský druh.", 0f));
         yield return StartCoroutine(ShowDlg("AŠTAR: Rozumím, Ptaahu. Lidé ze Země potřebují nový domov. Nezklameme je.", 0f));
         yield return StartCoroutine(ShowDlg("JEŠTĚR: Nenajdeš to, co hledáš, Šerane. Tyto světy patří pod naši kontrolu. Tvoje mise zde končí.", 0f));
@@ -234,6 +255,7 @@ public class PlanetEncounterManager : MonoBehaviour
         yield return StartCoroutine(FadeTo(0f, 1f, 0.8f));
         if (bgRenderer != null) bgRenderer.color = Color.black;
         yield return StartCoroutine(FadeTo(1f, 0f, 0.5f));
+        SwitchMusic(dialogueMusic);
         yield return StartCoroutine(ShowDlg("PTAAH: Veliteli. Osm světů prozkoumáno. Osm zamítnutí zaznamenáno.", 0f));
         yield return StartCoroutine(ShowDlg("PTAAH: Existuje pouze jedna planeta, která patří tomuto druhu.", 0f));
         yield return StartCoroutine(ShowDlg("AŠTAR: Máte pravdu...", 0f));
@@ -273,6 +295,14 @@ public class PlanetEncounterManager : MonoBehaviour
     IEnumerator FadeTo(float from, float to, float dur) { if (_fade == null) { yield return new WaitForSeconds(dur); yield break; } for (float t = 0f; t < dur; t += Time.deltaTime) { _fade.color = new Color(0, 0, 0, Mathf.Lerp(from, to, t / dur)); yield return null; } _fade.color = new Color(0, 0, 0, to); }
 
     void LaunchFormation(PlanetEncounter p) { if (_fgo) Destroy(_fgo); _fgo = new GameObject("Formation"); var fc = _fgo.AddComponent<FormationController>(); fc.Init(p.cols, p.rows, p.formationSpeed, p.hasBoss ? 1 : 0, p.enemyFireRate, enemy1Prefab, enemy2Prefab, enemy3Prefab, p.hasBoss ? bossPrefab : null, enemyProjectilePrefab, player ? player.transform : null, this); fc.SetTierAndBoss(p.enemyPrefabTier, p.hasBoss); }
+
+    void SwitchMusic(AudioClip clip)
+    {
+        if (_mus == null || clip == null) return;
+        if (_mus.clip == clip && _mus.isPlaying) return;
+        _mus.clip = clip;
+        _mus.Play();
+    }
 
     void BuildRuntimeUI()
     {

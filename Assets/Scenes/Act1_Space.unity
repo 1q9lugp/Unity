@@ -793,6 +793,8 @@ MonoBehaviour:
   - {fileID: 1144011335660825493, guid: 9caf13ef16479b26f97bcf1662ed4a88, type: 3}
   - {fileID: -6319503630669710441, guid: 02443f479836a967ba371b4762326c4c, type: 3}
   - {fileID: -2437013418991285458, guid: e787137199394f8418e8f73a90ed67b3, type: 3}
+  combatMusic: {fileID: 8300000, guid: 36ada36e8306b0f199cf6b966a3e095e, type: 3}
+  dialogueMusic: {fileID: 8300000, guid: 5b4d945d484670199861d8f4d41426d2, type: 3}
 --- !u!4 &936263449
 Transform:
   m_ObjectHideFlags: 0

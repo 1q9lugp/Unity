@@ -266,26 +266,6 @@ if (_mus != null) _mus.Stop(); // silence for endingMusic);
         yield return StartCoroutine(ShowDlg("PTAAH: Veliteli. Osm světů prozkoumáno. Osm zamítnutí zaznamenáno.", 0f));
         yield return StartCoroutine(ShowDlg("PTAAH: Existuje pouze jedna planeta, která patří tomuto druhu.", 0f));
         yield return StartCoroutine(ShowDlg("AŠTAR: Máte pravdu...", 0f));
-        yield return StartCoroutine(ShowDlg("AŠTAR: Nastavte kurz...", 0f));
-
-        if (cinematicSong != null)
-        {
-            var carrier = new GameObject("CinematicMusic");
-            DontDestroyOnLoad(carrier);
-            var src = carrier.AddComponent<AudioSource>();
-            src.clip = cinematicSong; 
-        // src.Play(); // carrier disabled; 
-            src.volume = 0.8f; 
-            src.loop = false;
-            src.Play();
-            
-            // Fixed: Act2Controller static assignment logic
-// Act2Controller.CinematicMusic = src; // carrier removednematicMusic = src; 
-            
-            if (_mus != null) _mus.Stop();
-        }
-
-        yield return StartCoroutine(ShowDlg("AŠTAR: ZEMĚ.", 0f));
         CloseDlg();
         yield return StartCoroutine(FadeTo(0f, 1f, 1f));
         SceneManager.LoadScene(3); 

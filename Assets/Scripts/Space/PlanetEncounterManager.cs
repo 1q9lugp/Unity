@@ -28,7 +28,9 @@ public class PlanetEncounterManager : MonoBehaviour
     [Header("Music")]
     public AudioClip combatMusic;
     public AudioClip dialogueMusic;
-    public AudioClip cinematicSong;    AudioSource _mus;
+    public AudioClip cinematicSong;
+    
+    private AudioSource _mus; // Fixed: Added missing declaration
 
     Image _fade, _dialogueBg, _speakerIcon, _jesusImg;
     Text _counterTxt, _announceTxt, _dialogueTxt, _planetNameTxt, _promptTxt;
@@ -38,7 +40,7 @@ public class PlanetEncounterManager : MonoBehaviour
     int _idx;
     bool _roundCleared, _extraLifeUsed;
 
-    static readonly Color[] SC = {
+    static readonly Color[] SC = new Color[] { // Fixed: Proper array initialization
         Color.red, Color.blue, Color.cyan, Color.red,
         Color.yellow, Color.blue, Color.gray, Color.green
     };
@@ -54,7 +56,12 @@ public class PlanetEncounterManager : MonoBehaviour
 
         _lives = FindObjectOfType<LivesManager>();
         if (_lives != null) _lives.onAllLivesLost = OnLivesGone;
-        if (bgRenderer == null) { var bg = GameObject.Find("Background"); if (bg) bgRenderer = bg.GetComponent<SpriteRenderer>(); }
+        
+        if (bgRenderer == null) 
+        { 
+            var bg = GameObject.Find("Background"); 
+            if (bg) bgRenderer = bg.GetComponent<SpriteRenderer>(); 
+        }
         
         if (planets == null || planets.Length != 8)
         {
@@ -249,35 +256,40 @@ public class PlanetEncounterManager : MonoBehaviour
     }
 
     IEnumerator EndingSequence()
-{
-    if (_planetNameTxt != null) _planetNameTxt.gameObject.SetActive(false);
-    if (_counterTxt != null) _counterTxt.text = "";
-    yield return StartCoroutine(FadeTo(0f, 1f, 0.8f));
-    if (bgRenderer != null) bgRenderer.color = Color.black;
-    yield return StartCoroutine(FadeTo(1f, 0f, 0.5f));
-    SwitchMusic(dialogueMusic);
-    yield return StartCoroutine(ShowDlg("PTAAH: Veliteli. Osm světů prozkoumáno. Osm zamítnutí zaznamenáno.", 0f));
-    yield return StartCoroutine(ShowDlg("PTAAH: Existuje pouze jedna planeta, která patří tomuto druhu.", 0f));
-    yield return StartCoroutine(ShowDlg("AŠTAR: Máte pravdu...", 0f));
-    yield return StartCoroutine(ShowDlg("AŠTAR: Nastavte kurz...", 0f));
-
-    // Start cinematic song on the last line — persists into Act2 via DontDestroyOnLoad
-    if (cinematicSong != null)
     {
-        var carrier = new GameObject("CinematicMusic");
-        DontDestroyOnLoad(carrier);
-        var src = carrier.AddComponent<AudioSource>();
-        src.clip = cinematicSong; src.time = 15f; src.volume = 0.8f; src.loop = false;
-        src.Play();
-        if (_mus != null) _mus.Stop();
+        if (_planetNameTxt != null) _planetNameTxt.gameObject.SetActive(false);
+        if (_counterTxt != null) _counterTxt.text = "";
+        yield return StartCoroutine(FadeTo(0f, 1f, 0.8f));
+        if (bgRenderer != null) bgRenderer.color = Color.black;
+        yield return StartCoroutine(FadeTo(1f, 0f, 0.5f));
+        SwitchMusic(dialogueMusic);
+        yield return StartCoroutine(ShowDlg("PTAAH: Veliteli. Osm světů prozkoumáno. Osm zamítnutí zaznamenáno.", 0f));
+        yield return StartCoroutine(ShowDlg("PTAAH: Existuje pouze jedna planeta, která patří tomuto druhu.", 0f));
+        yield return StartCoroutine(ShowDlg("AŠTAR: Máte pravdu...", 0f));
+        yield return StartCoroutine(ShowDlg("AŠTAR: Nastavte kurz...", 0f));
+
+        if (cinematicSong != null)
+        {
+            var carrier = new GameObject("CinematicMusic");
+            DontDestroyOnLoad(carrier);
+            var src = carrier.AddComponent<AudioSource>();
+            src.clip = cinematicSong; 
+            src.time = 15f; 
+            src.volume = 0.8f; 
+            src.loop = false;
+            src.Play();
+            
+            // Fixed: Act2Controller static assignment logic
+            Act2Controller.CinematicMusic = src; 
+            
+            if (_mus != null) _mus.Stop();
+        }
+
+        yield return StartCoroutine(ShowDlg("AŠTAR: ZEMĚ.", 0f));
+        CloseDlg();
+        yield return StartCoroutine(FadeTo(0f, 1f, 1f));
+        SceneManager.LoadScene(3); 
     }
-
-    yield return StartCoroutine(ShowDlg("AŠTAR: ZEMĚ.", 0f));
-    CloseDlg();
-    yield return StartCoroutine(FadeTo(0f, 1f, 1f));
-    SceneManager.LoadScene(3); // was 2 (bug) — now correctly goes to Act2_Transition
-}
-
 
     IEnumerator ShowDlg(string msg, float hold)
     {
@@ -303,9 +315,25 @@ public class PlanetEncounterManager : MonoBehaviour
         if (_promptTxt != null) _promptTxt.gameObject.SetActive(false);
     }
 
-    IEnumerator FadeTo(float from, float to, float dur) { if (_fade == null) { yield return new WaitForSeconds(dur); yield break; } for (float t = 0f; t < dur; t += Time.deltaTime) { _fade.color = new Color(0, 0, 0, Mathf.Lerp(from, to, t / dur)); yield return null; } _fade.color = new Color(0, 0, 0, to); }
+    IEnumerator FadeTo(float from, float to, float dur) 
+    { 
+        if (_fade == null) { yield return new WaitForSeconds(dur); yield break; } 
+        for (float t = 0f; t < dur; t += Time.deltaTime) 
+        { 
+            _fade.color = new Color(0, 0, 0, Mathf.Lerp(from, to, t / dur)); 
+            yield return null; 
+        } 
+        _fade.color = new Color(0, 0, 0, to); 
+    }
 
-    void LaunchFormation(PlanetEncounter p) { if (_fgo) Destroy(_fgo); _fgo = new GameObject("Formation"); var fc = _fgo.AddComponent<FormationController>(); fc.Init(p.cols, p.rows, p.formationSpeed, p.hasBoss ? 1 : 0, p.enemyFireRate, enemy1Prefab, enemy2Prefab, enemy3Prefab, p.hasBoss ? bossPrefab : null, enemyProjectilePrefab, player ? player.transform : null, this); fc.SetTierAndBoss(p.enemyPrefabTier, p.hasBoss); }
+    void LaunchFormation(PlanetEncounter p) 
+    { 
+        if (_fgo) Destroy(_fgo); 
+        _fgo = new GameObject("Formation"); 
+        var fc = _fgo.AddComponent<FormationController>(); 
+        fc.Init(p.cols, p.rows, p.formationSpeed, p.hasBoss ? 1 : 0, p.enemyFireRate, enemy1Prefab, enemy2Prefab, enemy3Prefab, p.hasBoss ? bossPrefab : null, enemyProjectilePrefab, player ? player.transform : null, this); 
+        fc.SetTierAndBoss(p.enemyPrefabTier, p.hasBoss); 
+    }
 
     void SwitchMusic(AudioClip clip)
     {

@@ -795,6 +795,7 @@ MonoBehaviour:
   - {fileID: -2437013418991285458, guid: e787137199394f8418e8f73a90ed67b3, type: 3}
   combatMusic: {fileID: 8300000, guid: 36ada36e8306b0f199cf6b966a3e095e, type: 3}
   dialogueMusic: {fileID: 8300000, guid: 5b4d945d484670199861d8f4d41426d2, type: 3}
+  cinematicSong: {fileID: 8300000, guid: 9e71f6fca77971200a971ed860434ab1, type: 3}
 --- !u!4 &936263449
 Transform:
   m_ObjectHideFlags: 0

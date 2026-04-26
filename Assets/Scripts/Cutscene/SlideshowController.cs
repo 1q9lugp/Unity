@@ -18,12 +18,12 @@ public class SlideshowController : MonoBehaviour
     public List<Slide> slides;
     public Image slideImage;
     public Text slideText;
-    
+
     [Header("Game Feel Settings")]
-    public float typeSpeed = 0.05f; // Speed of typewriter effect
+    public float typeSpeed = 0.05f;
     public AudioSource musicSource;
     public AudioClip backgroundMusic;
-    public AudioSource sfxSource;   // Optional: Add a small "blip" sound per character
+    public AudioSource sfxSource;
     public AudioClip typeSound;
 
     private bool _isSkipped = false;
@@ -37,16 +37,33 @@ public class SlideshowController : MonoBehaviour
             musicSource.Play();
         }
 
+        SetupHighContrastText();
         StartCoroutine(PlaySlideshow());
+    }
+
+    private void SetupHighContrastText()
+    {
+        if (slideText == null) return;
+
+        slideText.color = Color.white;
+        slideText.fontStyle = FontStyle.Bold;
+
+        // 1. Add a thick Outline (Border)
+        var ol = slideText.gameObject.GetComponent<Outline>() ?? slideText.gameObject.AddComponent<Outline>();
+        ol.effectColor = new Color(0f, 0f, 0f, 1f); // Pure black
+        ol.effectDistance = new Vector2(2f, -2f); // Thicker border
+
+        // 2. Add a Shadow (Depth)
+        // Adding a shadow on top of an outline creates a "lifted" look that handles white backgrounds perfectly
+        var sh = slideText.gameObject.GetComponent<Shadow>() ?? slideText.gameObject.AddComponent<Shadow>();
+        sh.effectColor = new Color(0f, 0f, 0f, 0.8f);
+        sh.effectDistance = new Vector2(3f, -3f);
     }
 
     private void Update()
     {
-        // Allow player to skip the typewriter or the hold duration
         if (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return))
-        {
             _isSkipped = true;
-        }
     }
 
     private IEnumerator PlaySlideshow()
@@ -54,19 +71,19 @@ public class SlideshowController : MonoBehaviour
         foreach (var slide in slides)
         {
             _isSkipped = false;
-            
-            // Setup slide
-            if (slideImage != null) {
+
+            if (slideImage != null)
+            {
                 slideImage.sprite = slide.image;
-                slideImage.preserveAspect = false;
-                // Fade image in quickly or keep it static
-                StartCoroutine(FadeImage(1f, 0.5f)); 
+                // Ensure image alpha is reset before fading in
+                Color c = slideImage.color;
+                c.a = 0f;
+                slideImage.color = c;
+                StartCoroutine(FadeImage(1f, 0.5f));
             }
 
-            // Start Typewriter
             yield return StartCoroutine(TypeText(slide.text));
 
-            // Wait for duration OR player click
             float timer = 0;
             while (timer < slide.holdDuration && !_isSkipped)
             {
@@ -74,7 +91,6 @@ public class SlideshowController : MonoBehaviour
                 yield return null;
             }
 
-            // Fade out text and image before next slide
             yield return StartCoroutine(FadeAll(0f, 0.5f));
         }
 
@@ -84,22 +100,21 @@ public class SlideshowController : MonoBehaviour
     private IEnumerator TypeText(string fullText)
     {
         slideText.text = "";
-        // Ensure text is visible (Alpha 1)
         Color c = slideText.color;
         c.a = 1f;
         slideText.color = c;
 
         foreach (char letter in fullText.ToCharArray())
         {
-            if (_isSkipped) 
+            if (_isSkipped)
             {
-                slideText.text = fullText; // Finish text immediately
-                _isSkipped = false; // Reset skip for the "Hold" phase
+                slideText.text = fullText;
+                _isSkipped = false;
                 yield break;
             }
 
             slideText.text += letter;
-            
+
             if (sfxSource != null && typeSound != null)
                 sfxSource.PlayOneShot(typeSound);
 
@@ -131,7 +146,7 @@ public class SlideshowController : MonoBehaviour
         {
             elapsed += Time.deltaTime;
             float t = elapsed / duration;
-            
+
             Color ct = slideText.color;
             ct.a = Mathf.Lerp(startAlphaTxt, targetAlpha, t);
             slideText.color = ct;

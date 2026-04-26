@@ -274,7 +274,7 @@ if (_mus != null) _mus.Stop(); // silence for endingMusic);
             DontDestroyOnLoad(carrier);
             var src = carrier.AddComponent<AudioSource>();
             src.clip = cinematicSong; 
-            src.time = 15f; 
+        // src.Play(); // carrier disabled; 
             src.volume = 0.8f; 
             src.loop = false;
             src.Play();

@@ -262,7 +262,7 @@ public class PlanetEncounterManager : MonoBehaviour
         yield return StartCoroutine(FadeTo(0f, 1f, 0.8f));
         if (bgRenderer != null) bgRenderer.color = Color.black;
         yield return StartCoroutine(FadeTo(1f, 0f, 0.5f));
-        SwitchMusic(dialogueMusic);
+if (_mus != null) _mus.Stop(); // silence for endingMusic);
         yield return StartCoroutine(ShowDlg("PTAAH: Veliteli. Osm světů prozkoumáno. Osm zamítnutí zaznamenáno.", 0f));
         yield return StartCoroutine(ShowDlg("PTAAH: Existuje pouze jedna planeta, která patří tomuto druhu.", 0f));
         yield return StartCoroutine(ShowDlg("AŠTAR: Máte pravdu...", 0f));
@@ -280,7 +280,7 @@ public class PlanetEncounterManager : MonoBehaviour
             src.Play();
             
             // Fixed: Act2Controller static assignment logic
-            Act2Controller.CinematicMusic = src; 
+// Act2Controller.CinematicMusic = src; // carrier removednematicMusic = src; 
             
             if (_mus != null) _mus.Stop();
         }

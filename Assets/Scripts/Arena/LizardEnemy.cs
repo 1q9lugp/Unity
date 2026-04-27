@@ -14,21 +14,21 @@ public class LizardEnemy : MonoBehaviour
     public float meleeCooldown = 0.8f;
 
     [Header("Visual")]
-    public SpriteRenderer sprite;       
-    public float scaleMultiplier = 1f;  
+    public SpriteRenderer sprite;
+    public float scaleMultiplier = 1f;
 
     [Header("Separation")]
-    public LayerMask enemyLayerMask;    
+    public LayerMask enemyLayerMask;
 
     enum State { Chase, Melee }
     State _state = State.Chase;
 
-    Transform    _player;
+    Transform     _player;
     FPSController _fpsController;
-    NavMeshAgent _agent;
-    bool         _useNav;
-    bool         _isFlashing;
-    bool         _isDead;
+    NavMeshAgent  _agent;
+    bool          _useNav;
+    bool          _isFlashing;
+    bool          _isDead;
 
     float   _nextMelee;
     float   _nextSepCheck;
@@ -40,10 +40,8 @@ public class LizardEnemy : MonoBehaviour
     ArenaHUD     _hud;
     EnemySpawner _spawner;
 
-    // ── New Setup Method ──
     public void Setup(bool isElite)
     {
-        // This handles the procedural stats based on the Spawner's roll
         health          = isElite ? 10 : 3;
         moveSpeed       = isElite ? 2.5f : 3.8f;
         meleeDamage     = isElite ? 20 : 10;
@@ -51,12 +49,12 @@ public class LizardEnemy : MonoBehaviour
         _baseScale      = scaleMultiplier;
 
         if (sprite == null) sprite = GetComponentInChildren<SpriteRenderer>();
-        
+
         if (sprite != null)
         {
-            sprite.color = isElite 
-                ? new Color(0.7f, 0.8f, 1f)    // Blue-ish
-                : new Color(1f, 0.8f, 0.8f);   // Red-ish
+            sprite.color = isElite
+                ? new Color(0.7f, 0.8f, 1f)
+                : new Color(1f, 0.8f, 0.8f);
         }
 
         if (_agent != null) _agent.speed = moveSpeed;
@@ -70,7 +68,7 @@ public class LizardEnemy : MonoBehaviour
         var p = GameObject.FindGameObjectWithTag("Player");
         if (p != null)
         {
-            _player       = p.transform;
+            _player        = p.transform;
             _fpsController = p.GetComponent<FPSController>();
         }
 
@@ -86,8 +84,8 @@ public class LizardEnemy : MonoBehaviour
 
         if (sprite == null) sprite = GetComponentInChildren<SpriteRenderer>();
 
-        _bobOffset  = Random.Range(0f, 10f);
-        _baseScale  = scaleMultiplier;
+        _bobOffset = Random.Range(0f, 10f);
+        _baseScale = scaleMultiplier;
     }
 
     void Update()
@@ -99,8 +97,8 @@ public class LizardEnemy : MonoBehaviour
 
         switch (_state)
         {
-            case State.Chase: HandleMovement();    break;
-            case State.Melee: TryMeleeAttack();    break;
+            case State.Chase: HandleMovement();  break;
+            case State.Melee: TryMeleeAttack();  break;
         }
 
         HandleProceduralAnimation();
@@ -114,7 +112,7 @@ public class LizardEnemy : MonoBehaviour
 
         if (Time.time > _nextSepCheck)
         {
-            _nextSepCheck    = Time.time + 0.1f;
+            _nextSepCheck     = Time.time + 0.1f;
             _cachedSeparation = Vector3.zero;
 
             Collider[] neighbors = Physics.OverlapSphere(transform.position, 1.5f, enemyLayerMask);
@@ -164,12 +162,19 @@ public class LizardEnemy : MonoBehaviour
     {
         if (sprite == null) return;
 
+        // Compute the sprite's actual half-height in world space so the
+        // bottom edge always sits flush at y=0, regardless of PPU or scale.
+        float halfH = sprite.sprite != null
+            ? sprite.sprite.bounds.extents.y * _baseScale
+            : 1.0f;
+
         float pulse = Mathf.Sin(Time.time * 2f + _bobOffset) * 0.05f;
         float s     = _baseScale + pulse;
         sprite.transform.localScale = new Vector3(s, s, 1f);
 
         float bob = Mathf.Sin(Time.time * 5f + _bobOffset) * 0.1f;
-        sprite.transform.localPosition = new Vector3(0, 0.9f + bob, 0);
+        // Use actual half-height so bottom edge = root y = ground level
+        sprite.transform.localPosition = new Vector3(0, halfH + bob, 0);
 
         float tilt = Mathf.Sin(Time.time * 10f + _bobOffset) * 4f;
         sprite.transform.localRotation = Quaternion.Euler(0, 0, tilt);
@@ -191,8 +196,7 @@ public class LizardEnemy : MonoBehaviour
         if (_agent != null) _agent.enabled = false;
 
         _hud?.AddKill();
-        
-        // Corrected: Passing the gameObject to the spawner
+
         if (_spawner != null)
             _spawner.OnEnemyDied(this.gameObject);
 
@@ -201,7 +205,7 @@ public class LizardEnemy : MonoBehaviour
 
     IEnumerator DeathAnim()
     {
-        float elapsed = 0f;
+        float elapsed  = 0f;
         float duration = 0.15f;
         Vector3 startScale = transform.localScale;
 

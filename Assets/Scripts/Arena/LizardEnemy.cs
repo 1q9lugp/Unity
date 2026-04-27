@@ -14,13 +14,12 @@ public class LizardEnemy : MonoBehaviour
     public float meleeCooldown = 0.8f;
 
     [Header("Visual")]
-    public SpriteRenderer sprite;       // drag child Sprite here
-    public float scaleMultiplier = 1f;  // set to 1.4 for elites in spawner
+    public SpriteRenderer sprite;       
+    public float scaleMultiplier = 1f;  
 
     [Header("Separation")]
-    public LayerMask enemyLayerMask;    // assign "Enemy" layer in Inspector
+    public LayerMask enemyLayerMask;    
 
-    // ── private state ────────────────────────────────────────────────────
     enum State { Chase, Melee }
     State _state = State.Chase;
 
@@ -38,14 +37,33 @@ public class LizardEnemy : MonoBehaviour
     float _bobOffset;
     float _baseScale;
 
-    // cached scene refs — found once, never searched again
     ArenaHUD     _hud;
     EnemySpawner _spawner;
 
-    // ── lifecycle ────────────────────────────────────────────────────────
+    // ── New Setup Method ──
+    public void Setup(bool isElite)
+    {
+        // This handles the procedural stats based on the Spawner's roll
+        health          = isElite ? 10 : 3;
+        moveSpeed       = isElite ? 2.5f : 3.8f;
+        meleeDamage     = isElite ? 20 : 10;
+        scaleMultiplier = isElite ? 1.4f : 1.0f;
+        _baseScale      = scaleMultiplier;
+
+        if (sprite == null) sprite = GetComponentInChildren<SpriteRenderer>();
+        
+        if (sprite != null)
+        {
+            sprite.color = isElite 
+                ? new Color(0.7f, 0.8f, 1f)    // Blue-ish
+                : new Color(1f, 0.8f, 0.8f);   // Red-ish
+        }
+
+        if (_agent != null) _agent.speed = moveSpeed;
+    }
+
     void Start()
     {
-        // Cache scene refs once
         _hud     = FindObjectOfType<ArenaHUD>();
         _spawner = FindObjectOfType<EnemySpawner>();
 
@@ -68,7 +86,6 @@ public class LizardEnemy : MonoBehaviour
 
         if (sprite == null) sprite = GetComponentInChildren<SpriteRenderer>();
 
-        // Randomise timing so enemies don't all bob in sync
         _bobOffset  = Random.Range(0f, 10f);
         _baseScale  = scaleMultiplier;
     }
@@ -90,13 +107,11 @@ public class LizardEnemy : MonoBehaviour
         HandleBillboarding();
     }
 
-    // ── movement ─────────────────────────────────────────────────────────
     void HandleMovement()
     {
         Vector3 direction = (_player.position - transform.position).normalized;
         direction.y = 0;
 
-        // Throttled separation — O(n) per enemy per tick instead of every frame
         if (Time.time > _nextSepCheck)
         {
             _nextSepCheck    = Time.time + 0.1f;
@@ -124,7 +139,6 @@ public class LizardEnemy : MonoBehaviour
             transform.forward = direction;
     }
 
-    // ── combat ───────────────────────────────────────────────────────────
     void TryMeleeAttack()
     {
         if (Time.time < _nextMelee) return;
@@ -140,11 +154,9 @@ public class LizardEnemy : MonoBehaviour
         if (health <= 0) Die();
     }
 
-    // ── visuals ──────────────────────────────────────────────────────────
     void HandleBillboarding()
     {
         if (Camera.main == null || sprite == null) return;
-        // Copy only the camera's Y rotation — keeps sprite upright, no flipX fighting
         sprite.transform.rotation = Quaternion.Euler(0f, Camera.main.transform.eulerAngles.y, 0f);
     }
 
@@ -173,14 +185,16 @@ public class LizardEnemy : MonoBehaviour
         _isFlashing  = false;
     }
 
-    // ── death ────────────────────────────────────────────────────────────
     void Die()
     {
         _isDead = true;
         if (_agent != null) _agent.enabled = false;
 
         _hud?.AddKill();
-        _spawner?.OnEnemyDied();
+        
+        // Corrected: Passing the gameObject to the spawner
+        if (_spawner != null)
+            _spawner.OnEnemyDied(this.gameObject);
 
         StartCoroutine(DeathAnim());
     }

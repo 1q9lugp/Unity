@@ -6,20 +6,13 @@ using System.Collections.Generic;
 public class EnemySpawner : MonoBehaviour
 {
     [Header("Config")]
-    public int   maxEnemies  = 100;
+    public GameObject enemyPrefab; 
+    public int maxEnemies = 100;
     public float spawnRadius = 40f;
     public float eliteChance = 0.2f;
 
-    [Header("Templates")]
-    public GameObject gruntTemplate;
-    public GameObject eliteTemplate;
+    private readonly HashSet<GameObject> _liveEnemies = new HashSet<GameObject>();
 
-    // Track live enemies in a set — O(1) add/remove, no counter drift
-    readonly HashSet<LizardEnemy> _live = new HashSet<LizardEnemy>();
-
-    int ActiveCount => _live.Count;
-
-    // ── lifecycle ────────────────────────────────────────────────────────
     void Start()
     {
         StartCoroutine(InitialSpawnRoutine());
@@ -30,71 +23,50 @@ public class EnemySpawner : MonoBehaviour
         for (int i = 0; i < maxEnemies; i++)
         {
             Spawn();
-            yield return new WaitForSeconds(0.05f);
+            yield return new WaitForSeconds(0.02f); 
         }
     }
 
-    // Called by LizardEnemy.Die()
-    public void OnEnemyDied()
+    public void OnEnemyDied(GameObject enemy)
     {
-        // Clean dead entries (destroyed objects become null in the HashSet)
-        _live.RemoveWhere(e => e == null);
-        Invoke(nameof(Spawn), 1.0f);
+        if (enemy != null)
+            _liveEnemies.Remove(enemy);
+            
+        Invoke(nameof(Spawn), Random.Range(0.5f, 1.5f));
     }
 
-    // ── spawning ─────────────────────────────────────────────────────────
     void Spawn()
     {
-        // Refresh for any enemies that were destroyed outside of Die()
-        _live.RemoveWhere(e => e == null);
-        if (ActiveCount >= maxEnemies) return;
-
-        bool isElite = Random.value < eliteChance;
-        GameObject tmpl = isElite ? eliteTemplate : gruntTemplate;
-        if (tmpl == null) return;
+        _liveEnemies.RemoveWhere(e => e == null);
+        if (_liveEnemies.Count >= maxEnemies) return;
 
         Vector3 pos = GetSpawnPosition();
-
-        var go    = Instantiate(tmpl, pos, Quaternion.identity);
-        go.SetActive(true);
-
-        var enemy = go.GetComponent<LizardEnemy>();
-        if (enemy != null)
+        GameObject go = Instantiate(enemyPrefab, pos, Quaternion.identity);
+        
+        LizardEnemy script = go.GetComponent<LizardEnemy>();
+        if (script != null)
         {
-            // Stats
-            enemy.health        = isElite ? 10  : 3;
-            enemy.moveSpeed     = isElite ? 2.5f : 3.8f;
-            enemy.meleeDamage   = isElite ? 20  : 10;
-            enemy.scaleMultiplier = isElite ? 1.4f : 1.0f;
-
-            // Tint
-            if (enemy.sprite != null)
-                enemy.sprite.color = isElite
-                    ? new Color(0.7f, 0.8f, 1f)    // blue-ish elite
-                    : new Color(1f,   0.8f, 0.8f);  // red-ish grunt
-
-            _live.Add(enemy);
+            bool isElite = Random.value < eliteChance;
+            script.Setup(isElite); 
         }
+
+        _liveEnemies.Add(go);
     }
 
-    // Finds a random point on the NavMesh around the player
     Vector3 GetSpawnPosition()
     {
-        var player = GameObject.FindGameObjectWithTag("Player");
-        Vector3 origin = player != null ? player.transform.position : Vector3.zero;
+        Transform player = GameObject.FindGameObjectWithTag("Player")?.transform;
+        Vector3 origin = player != null ? player.position : Vector3.zero;
 
-        for (int attempt = 0; attempt < 10; attempt++)
+        float angle = Random.Range(0f, Mathf.PI * 2f);
+        Vector3 offset = new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle)) * spawnRadius;
+        Vector3 candidate = origin + offset;
+
+        if (NavMesh.SamplePosition(candidate, out NavMeshHit hit, 5f, NavMesh.AllAreas))
         {
-            float   a      = Random.Range(0f, Mathf.PI * 2f);
-            Vector3 candidate = origin + new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * spawnRadius;
-
-            NavMeshHit hit;
-            if (NavMesh.SamplePosition(candidate, out hit, 3f, NavMesh.AllAreas))
-                return hit.position;
+            return hit.position;
         }
 
-        // Fallback — raw position if NavMesh not found after 10 tries
-        float fallbackAngle = Random.Range(0f, Mathf.PI * 2f);
-        return origin + new Vector3(Mathf.Cos(fallbackAngle), 0f, Mathf.Sin(fallbackAngle)) * spawnRadius;
+        return candidate; 
     }
 }

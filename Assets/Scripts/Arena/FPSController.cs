@@ -58,8 +58,12 @@ public class FPSController : MonoBehaviour
         Vector3 dir = transform.right * h + transform.forward * v;
         if (dir.sqrMagnitude > 1f) dir.Normalize();
 
-        if (_cc.isGrounded) _velY = -2f;
-        _velY += gravity * Time.deltaTime;
+       // Improved Logic
+if (_cc.isGrounded && _velY < 0) 
+{
+    _velY = -0.5f; // Smaller force avoids "shoving" the capsule into the floor
+}
+_velY += gravity * Time.deltaTime;
 
         _cc.Move((dir * moveSpeed + Vector3.up * _velY) * Time.deltaTime);
     }

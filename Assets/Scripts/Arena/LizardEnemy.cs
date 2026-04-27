@@ -33,9 +33,7 @@ public class LizardEnemy : MonoBehaviour
         if (cam != null) transform.forward = cam.transform.forward;
 
         if (_useNav && _agent.isOnNavMesh)
-        {
             _agent.SetDestination(_player.position);
-        }
         else
         {
             Vector3 d = _player.position - transform.position;
@@ -48,8 +46,14 @@ public class LizardEnemy : MonoBehaviour
     {
         health -= dmg;
         if (health > 0) return;
+
+        // Tell the HUD before destroying
+        var hud = FindObjectOfType<ArenaHUD>();
+        if (hud != null) hud.AddKill();
+
         var spawner = FindObjectOfType<EnemySpawner>();
         if (spawner != null) spawner.OnEnemyDied();
+
         Destroy(gameObject);
     }
 }

@@ -144,12 +144,13 @@ public class Act2Controller : MonoBehaviour
 
         // Wait for the cinematic song to finish before transitioning
         if (_src != null && _src.isPlaying)
-        {
-            while (_src.isPlaying)
-                yield return null;
-        }
+{
+    float endTime = _src.clip.length - 4f;
+    while (_src.isPlaying && _src.time < endTime)
+        yield return null;
+}
 
-        SceneManager.LoadScene(4);
+SceneManager.LoadScene(4);
     }
 
     IEnumerator ShowDlg(string msg)

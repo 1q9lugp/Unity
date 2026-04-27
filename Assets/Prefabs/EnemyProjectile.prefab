@@ -145,6 +145,7 @@ MonoBehaviour:
   speed: 6
   lifetime: 6
   isPlayerShot: 0
+  enemyProjectileSprite: {fileID: -1589823552176820952, guid: 876979f0410253544bda3e44725cfc7e, type: 3}
 --- !u!50 &3876872942835598302
 Rigidbody2D:
   serializedVersion: 5

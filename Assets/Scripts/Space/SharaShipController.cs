@@ -121,7 +121,10 @@ public class SharaShipController : MonoBehaviour
                 _fireCd = fireRate;
                 if (beamPrefab != null)
                 {
-                    Instantiate(beamPrefab, transform.position + new Vector3(0f, 0.8f, 0f), Quaternion.identity);
+                    var go = Instantiate(beamPrefab, transform.position + new Vector3(0f, 0.8f, 0f), Quaternion.identity);
+                    var sp = go.GetComponent<SpaceProjectile>();
+                    if (sp != null) sp.SetType(true); // FORCE AS PLAYER SHOT
+                    
                     _sacrificeCount += 1;
                     UpdateSacrificeUI();
                 }
@@ -182,14 +185,14 @@ public class SharaShipController : MonoBehaviour
     public void ResetShipState()
     {
         StopAllCoroutines();
-        invincible = false;
+        invincible = false; // Fix: Stop being invincible immediately
         if (_sr == null) _sr = GetComponent<SpriteRenderer>();
         _sr.enabled = true;
+        _sr.color = Color.white;
         _fireCd = 0f;
         _beamCd = 0f;
         transform.position = new Vector3(0f, -11f, 0f);
     }
-
     IEnumerator HitSeq()
     {
         invincible = true;

@@ -17,9 +17,6 @@ public class LizardEnemy : MonoBehaviour
     public SpriteRenderer sprite;
     public float scaleMultiplier = 1f;
 
-    [Header("Separation")]
-    public LayerMask enemyLayerMask;
-
     enum State { Chase, Melee }
     State _state = State.Chase;
 
@@ -31,8 +28,8 @@ public class LizardEnemy : MonoBehaviour
     bool          _isDead;
 
     float   _nextMelee;
-    float   _nextSepCheck;
-    Vector3 _cachedSeparation;
+    float   _nextDestUpdate;   // staggered path refresh
+    float   _destInterval;     // per-enemy random interval
 
     float _bobOffset;
     float _baseScale;
@@ -43,13 +40,17 @@ public class LizardEnemy : MonoBehaviour
     public void Setup(bool isElite)
     {
         health          = isElite ? 10 : 3;
-        moveSpeed       = isElite ? 2.5f : 3.8f;
         meleeDamage     = isElite ? 20 : 10;
         scaleMultiplier = isElite ? 1.4f : 1.0f;
         _baseScale      = scaleMultiplier;
 
-        if (sprite == null) sprite = GetComponentInChildren<SpriteRenderer>();
+        // Random speed variance ±15% so the horde doesn't arrive as one wall
+        float variance  = Random.Range(0.85f, 1.15f);
+        moveSpeed       = (isElite ? 2.5f : 3.8f) * variance;
 
+        transform.localScale = Vector3.one * scaleMultiplier;
+
+        if (sprite == null) sprite = GetComponentInChildren<SpriteRenderer>();
         if (sprite != null)
         {
             sprite.color = isElite
@@ -77,15 +78,23 @@ public class LizardEnemy : MonoBehaviour
 
         if (_useNav)
         {
-            _agent.speed        = moveSpeed;
-            _agent.angularSpeed = 720f;
-            _agent.acceleration = 20f;
+            _agent.speed               = moveSpeed;
+            _agent.angularSpeed        = 360f;
+            _agent.acceleration        = 12f;
+            _agent.autoBraking         = false;
+            // Let NavMeshAgent handle rotation — no manual override
+            _agent.updateRotation      = true;
+            _agent.updateUpAxis        = false;
         }
 
         if (sprite == null) sprite = GetComponentInChildren<SpriteRenderer>();
 
-        _bobOffset = Random.Range(0f, 10f);
-        _baseScale = scaleMultiplier;
+        _bobOffset    = Random.Range(0f, 10f);
+        _baseScale    = scaleMultiplier;
+        // Stagger path refresh: each enemy gets a slightly different interval
+        // so 100 agents don't all call SetDestination on the same frame
+        _destInterval    = Random.Range(0.2f, 0.35f);
+        _nextDestUpdate  = Time.time + Random.Range(0f, _destInterval);
     }
 
     void Update()
@@ -107,34 +116,41 @@ public class LizardEnemy : MonoBehaviour
 
     void HandleMovement()
     {
-        Vector3 direction = (_player.position - transform.position).normalized;
-        direction.y = 0;
-
-        if (Time.time > _nextSepCheck)
-        {
-            _nextSepCheck     = Time.time + 0.1f;
-            _cachedSeparation = Vector3.zero;
-
-            Collider[] neighbors = Physics.OverlapSphere(transform.position, 1.5f, enemyLayerMask);
-            foreach (var n in neighbors)
-            {
-                if (n.gameObject != gameObject)
-                    _cachedSeparation += (transform.position - n.transform.position);
-            }
-        }
-
         if (_useNav && _agent.isOnNavMesh)
         {
-            _agent.SetDestination(_player.position);
+            // Staggered SetDestination — not every frame
+            if (Time.time >= _nextDestUpdate)
+            {
+                _agent.SetDestination(_player.position);
+                _nextDestUpdate = Time.time + _destInterval;
+            }
+
+            // Separation: nudge away from nearby enemies using NavMesh velocity
+            Vector3 sep = Vector3.zero;
+            Collider[] neighbors = Physics.OverlapSphere(transform.position, 1.2f);
+            foreach (var n in neighbors)
+            {
+                if (n.gameObject == gameObject) continue;
+                if (n.GetComponent<LizardEnemy>() == null) continue;
+                sep += (transform.position - n.transform.position);
+            }
+
+            if (sep != Vector3.zero)
+            {
+                // Blend separation into desired velocity
+                Vector3 desired = _agent.desiredVelocity + sep.normalized * 1.5f;
+                _agent.velocity = Vector3.ClampMagnitude(desired, moveSpeed);
+            }
         }
         else
         {
-            Vector3 finalMove = (direction + _cachedSeparation.normalized * 0.5f).normalized;
-            transform.position += finalMove * (moveSpeed * Time.deltaTime);
+            // Fallback: direct movement without NavMesh
+            Vector3 dir = (_player.position - transform.position);
+            dir.y = 0f;
+            transform.position += dir.normalized * (moveSpeed * Time.deltaTime);
+            if (dir != Vector3.zero)
+                transform.forward = Vector3.Lerp(transform.forward, dir.normalized, Time.deltaTime * 8f);
         }
-
-        if (direction != Vector3.zero)
-            transform.forward = direction;
     }
 
     void TryMeleeAttack()
@@ -162,8 +178,6 @@ public class LizardEnemy : MonoBehaviour
     {
         if (sprite == null) return;
 
-        // Compute the sprite's actual half-height in world space so the
-        // bottom edge always sits flush at y=0, regardless of PPU or scale.
         float halfH = sprite.sprite != null
             ? sprite.sprite.bounds.extents.y * _baseScale
             : 1.0f;
@@ -173,7 +187,6 @@ public class LizardEnemy : MonoBehaviour
         sprite.transform.localScale = new Vector3(s, s, 1f);
 
         float bob = Mathf.Sin(Time.time * 5f + _bobOffset) * 0.1f;
-        // Use actual half-height so bottom edge = root y = ground level
         sprite.transform.localPosition = new Vector3(0, halfH + bob, 0);
 
         float tilt = Mathf.Sin(Time.time * 10f + _bobOffset) * 4f;
@@ -194,28 +207,22 @@ public class LizardEnemy : MonoBehaviour
     {
         _isDead = true;
         if (_agent != null) _agent.enabled = false;
-
         _hud?.AddKill();
-
-        if (_spawner != null)
-            _spawner.OnEnemyDied(this.gameObject);
-
+        if (_spawner != null) _spawner.OnEnemyDied(this.gameObject);
         StartCoroutine(DeathAnim());
     }
 
     IEnumerator DeathAnim()
     {
-        float elapsed  = 0f;
-        float duration = 0.15f;
+        float elapsed   = 0f;
+        float duration  = 0.15f;
         Vector3 startScale = transform.localScale;
-
         while (elapsed < duration)
         {
             elapsed += Time.deltaTime;
             transform.localScale = Vector3.Lerp(startScale, Vector3.zero, elapsed / duration);
             yield return null;
         }
-
         Destroy(gameObject);
     }
 }

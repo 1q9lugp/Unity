@@ -4,12 +4,13 @@ using UnityEngine.UI;
 public class ArenaHUD : MonoBehaviour
 {
     FPSController _player;
-    Text _healthNum, _armorNum, _ammoNum, _killNum;
+    Text _healthNum, _shieldNum, _ammoNum, _killNum;
     int  _kills;
 
     public void AddKill()
     {
         _kills++;
+        if (_killNum != null) _killNum.text = "LIZARDS: " + _kills;
     }
 
     void Start()
@@ -21,9 +22,9 @@ public class ArenaHUD : MonoBehaviour
     void Update()
     {
         if (_player == null) return;
-        if (_healthNum != null) _healthNum.text = "HEALTH: " + _player.health;
-        if (_armorNum  != null) _armorNum.text  = "ARMOR: "  + _player.armor + "%";
-        if (_ammoNum   != null) _ammoNum.text   = "AMMO: "   + _player.ammo;
+        if (_healthNum != null) _healthNum.text = "HEALTH: "  + _player.health;
+        if (_shieldNum != null) _shieldNum.text = "SHIELD: "  + _player.armor + "%";
+        if (_ammoNum   != null) _ammoNum.text   = "AMMO: "    + _player.ammo;
         if (_killNum   != null) _killNum.text   = "LIZARDS: " + _kills;
     }
 
@@ -39,7 +40,7 @@ public class ArenaHUD : MonoBehaviour
         Color panelBg   = new Color(0.02f, 0.02f, 0.02f, 0.75f);
 
         var left = MakePanel("VitalsModule", new Vector2(0, 0), new Vector2(260, 120), new Vector2(30, 30), panelBg);
-        _armorNum  = MakeStat(left, "ARMOR: 0",   new Vector2(10,  30), 28, lightBlue, TextAnchor.MiddleLeft);
+        _shieldNum = MakeStat(left, "SHIELD: 0",  new Vector2(10,  30), 28, lightBlue, TextAnchor.MiddleLeft);
         _healthNum = MakeStat(left, "HEALTH: 0",  new Vector2(10, -20), 44, red,       TextAnchor.MiddleLeft);
 
         var right = MakePanel("CombatModule", new Vector2(1, 0), new Vector2(260, 120), new Vector2(-30, 30), panelBg);

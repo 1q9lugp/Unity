@@ -18,9 +18,10 @@ public class FPSController : MonoBehaviour
     public float flightCooldown = 6f;
 
     [Header("Shooting")]
-    public float fireRate   = 0.12f;   // seconds between shots
-    public int   damage     = 1;
+    public float fireRate    = 0.12f;
+    public int   damage      = 1;
     public float bulletSpeed = 80f;
+    public float bulletSize  = 1f;
 
     [Header("Mouse Look")]
     public float mouseSens = 2f;
@@ -141,33 +142,25 @@ public class FPSController : MonoBehaviour
         _nextFire = Time.time + fireRate;
         ammo--;
 
-        // Spawn origin: camera position, fired along camera forward
         Transform origin = _cam != null ? _cam : transform;
         Vector3   pos    = origin.position + origin.forward * 0.5f;
 
-        // Build a temporary procedural bullet: glowing elongated capsule
         var go = GameObject.CreatePrimitive(PrimitiveType.Capsule);
         go.name = "Bullet";
         go.transform.position   = pos;
         go.transform.rotation   = Quaternion.LookRotation(origin.forward);
-        go.transform.localScale = new Vector3(0.08f, 0.35f, 0.08f);
-
-        // Rotate capsule so its length axis aligns with forward
+        go.transform.localScale = new Vector3(0.08f * bulletSize, 0.35f * bulletSize, 0.08f * bulletSize);
         go.transform.Rotate(90f, 0f, 0f);
 
-        // Swap to trigger so it detects enemies without blocking movement
         var col = go.GetComponent<CapsuleCollider>();
         col.isTrigger = true;
 
-        // Bright emissive yellow material
         var mat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
         if (mat == null) mat = new Material(Shader.Find("Standard"));
         mat.color = new Color(1f, 0.85f, 0f);
         mat.EnableKeyword("_EMISSION");
         mat.SetColor("_EmissionColor", new Color(1f, 0.7f, 0f) * 4f);
         go.GetComponent<MeshRenderer>().material = mat;
-
-        // Remove shadow casting — bullets shouldn't cast shadows
         go.GetComponent<MeshRenderer>().shadowCastingMode =
             UnityEngine.Rendering.ShadowCastingMode.Off;
 

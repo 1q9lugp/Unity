@@ -9,7 +9,7 @@ public class Act3Manager : MonoBehaviour
         var sky = new Material(Shader.Find("Skybox/Procedural"));
         if (sky != null)
         {
-            sky.SetFloat("_SunSize",             0.02f);
+            sky.SetFloat("_SunSize",             1f);   // big eclipse sun
             sky.SetFloat("_AtmosphereThickness", 0.25f);
             sky.SetColor("_SkyTint",    new Color(0.28f, 0.02f, 0.02f));
             sky.SetColor("_GroundColor",new Color(0.12f, 0.03f, 0.01f));
@@ -29,11 +29,19 @@ public class Act3Manager : MonoBehaviour
             sun.transform.eulerAngles = new Vector3(45f, 60f, 0f);
         }
 
-        // Fog
-        RenderSettings.fog              = true;
-        RenderSettings.fogMode          = FogMode.Linear;
-        RenderSettings.fogColor         = new Color(0.18f, 0.03f, 0.01f);
-        RenderSettings.fogStartDistance = 60f;
-        RenderSettings.fogEndDistance   = 200f;
+        // Camera — push far clip out so all 200x200 faces stay visible
+        var cam = Camera.main;
+        if (cam == null)
+        {
+            // fallback: find any camera in scene
+            cam = FindObjectOfType<Camera>();
+        }
+        if (cam != null)
+        {
+            cam.farClipPlane = 6000f;
+        }
+
+        // Fog — DISABLED.
+        RenderSettings.fog = false;
     }
 }

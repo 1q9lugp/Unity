@@ -23,16 +23,24 @@ public class FPSController : MonoBehaviour
     public float bulletSpeed = 80f;
     public float bulletSize  = 1f;
 
+    [Header("Laser")]
+    public float laserRange         = 500f;
+    public int   laserDamagePerTick = 1;
+    public float laserTickRate      = 0.08f;
+    public float laserBurstDuration = 8f;
+
     [Header("Mouse Look")]
     public float mouseSens = 2f;
 
     [Header("Stats")]
     public int health = 100;
     public int armor  = 50;
-    public int ammo   = 999;
 
     [Header("On Death")]
     public string gameOverScene = "TitleScreen";
+
+    // Read by ArenaHUD to display laser timer
+    [HideInInspector] public float laserTimeLeft = 0f;
 
     CharacterController _cc;
     Transform           _cam;
@@ -46,6 +54,14 @@ public class FPSController : MonoBehaviour
     float _flightCdTimer;
     float _nextFire;
 
+    LineRenderer _laser;
+    float        _nextLaserTick;
+    int          _laserKillThreshold;
+
+    ArenaHUD _hud;
+
+    const float TerminalVelocity = -40f;
+
     void Awake()
     {
         _cc = GetComponent<CharacterController>();
@@ -54,6 +70,72 @@ public class FPSController : MonoBehaviour
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible   = false;
         _flightTimer = flightDuration;
+
+        BuildLaser();
+    }
+
+    void Start()
+    {
+        _hud = FindObjectOfType<ArenaHUD>();
+        SnapToGround();
+    }
+
+    void BuildLaser()
+    {
+        var laserGO = new GameObject("LaserBeam");
+        laserGO.transform.SetParent(_cam != null ? _cam : transform);
+        laserGO.transform.localPosition = Vector3.zero;
+
+        _laser = laserGO.AddComponent<LineRenderer>();
+        _laser.positionCount = 2;
+        _laser.useWorldSpace = true;
+        _laser.startWidth    = 0.12f;
+        _laser.endWidth      = 0.03f;
+        _laser.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        _laser.receiveShadows    = false;
+
+        var mat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+        if (mat == null) mat = new Material(Shader.Find("Standard"));
+        mat.color = new Color(0f, 0.9f, 1f);
+        mat.EnableKeyword("_EMISSION");
+        mat.SetColor("_EmissionColor", new Color(0f, 1f, 1f) * 8f);
+
+        _laser.material   = mat;
+        _laser.startColor = new Color(0.0f, 1.0f, 1.0f, 1.0f);
+        _laser.endColor   = new Color(0.0f, 0.6f, 1.0f, 0.2f);
+        _laser.enabled    = false;
+    }
+
+    void SnapToGround()
+    {
+        if (_cc == null) return;
+
+        float searchRange = 600f;
+        Vector3 castOrigin = transform.position + Vector3.up * 10f;
+        RaycastHit[] hits = Physics.RaycastAll(castOrigin, Vector3.down, searchRange);
+
+        if (hits.Length > 0)
+        {
+            float lowestY = float.MaxValue;
+            bool found = false;
+
+            foreach (var hit in hits)
+            {
+                if (hit.point.y < lowestY)
+                {
+                    lowestY = hit.point.y;
+                    found = true;
+                }
+            }
+
+            if (found)
+            {
+                float targetCenterY = lowestY + _cc.height * 0.5f + 0.1f;
+                transform.position = new Vector3(transform.position.x,
+                                                 targetCenterY,
+                                                 transform.position.z);
+            }
+        }
     }
 
     void Update()
@@ -70,6 +152,20 @@ public class FPSController : MonoBehaviour
         HandleMovement();
         HandleFlight();
         HandleShooting();
+        CheckLaserUnlock();
+        HandleLaser();
+    }
+
+    void CheckLaserUnlock()
+    {
+        if (_hud == null) return;
+        int reached = (_hud.kills / 100) * 100;
+        if (reached > _laserKillThreshold)
+        {
+            int newThresholds  = (reached - _laserKillThreshold) / 100;
+            laserTimeLeft     += newThresholds * laserBurstDuration;
+            _laserKillThreshold = reached;
+        }
     }
 
     void HandleLook()
@@ -90,7 +186,7 @@ public class FPSController : MonoBehaviour
 
         if (_cc.isGrounded)
         {
-            if (_velY < 0f) _velY = -0.5f;
+            if (_velY < 0f) _velY = -2f;
             _jumpsLeft = extraJumps;
             if (_isFlying) StopFlight();
         }
@@ -103,6 +199,7 @@ public class FPSController : MonoBehaviour
                 else if (_jumpsLeft > 0) { _velY = jumpForce; _jumpsLeft--; }
             }
             _velY += gravity * Time.deltaTime;
+            _velY = Mathf.Max(_velY, TerminalVelocity);
         }
 
         _cc.Move((dir * moveSpeed + Vector3.up * _velY) * Time.deltaTime);
@@ -137,10 +234,8 @@ public class FPSController : MonoBehaviour
     {
         if (!Input.GetMouseButton(0)) return;
         if (Time.time < _nextFire) return;
-        if (ammo <= 0) return;
 
         _nextFire = Time.time + fireRate;
-        ammo--;
 
         Transform origin = _cam != null ? _cam : transform;
         Vector3   pos    = origin.position + origin.forward * 0.5f;
@@ -170,6 +265,43 @@ public class FPSController : MonoBehaviour
         bullet.Fire(origin.forward);
     }
 
+    void HandleLaser()
+    {
+        if (!Input.GetMouseButton(1) || laserTimeLeft <= 0f)
+        {
+            if (_laser != null) _laser.enabled = false;
+            return;
+        }
+
+        laserTimeLeft -= Time.deltaTime;
+        laserTimeLeft  = Mathf.Max(laserTimeLeft, 0f);
+
+        Transform origin  = _cam != null ? _cam : transform;
+        Vector3 beamStart = origin.position + origin.forward * 0.5f;
+        Vector3 beamEnd;
+
+        if (Physics.Raycast(origin.position, origin.forward,
+                            out RaycastHit hit, laserRange))
+        {
+            beamEnd = hit.point;
+
+            if (Time.time >= _nextLaserTick)
+            {
+                _nextLaserTick = Time.time + laserTickRate;
+                var enemy = hit.collider.GetComponentInParent<LizardEnemy>();
+                if (enemy != null) enemy.TakeDamage(laserDamagePerTick);
+            }
+        }
+        else
+        {
+            beamEnd = origin.position + origin.forward * laserRange;
+        }
+
+        _laser.enabled = true;
+        _laser.SetPosition(0, beamStart);
+        _laser.SetPosition(1, beamEnd);
+    }
+
     void StopFlight()
     {
         _isFlying      = false;
@@ -191,6 +323,7 @@ public class FPSController : MonoBehaviour
     {
         if (_isDead) return;
         _isDead = true;
+        if (_laser != null) _laser.enabled = false;
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible   = true;
         SceneManager.LoadScene(gameOverScene);

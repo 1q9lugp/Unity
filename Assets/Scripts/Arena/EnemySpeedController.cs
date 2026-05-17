@@ -2,14 +2,9 @@ using UnityEngine;
 using UnityEngine.AI;
 
 /// <summary>
-/// Automatically adjusts this enemy's NavMeshAgent speed every frame
-/// based on its distance from the player.
-///
-///   Far  (>= slowDownRadius) → maxSpeed  (enormous)
-///   Close (<= stopRadius)    → minSpeed  (sluggish / stalking pace)
-///   Between                  → smooth linear interpolation
-///
-/// Attached at runtime by EnemySpawner – no manual setup required.
+/// Scales NavMeshAgent speed based on distance to player.
+/// Far (>= slowDownRadius) → maxSpeed. Close (<= stopRadius) → minSpeed.
+/// Attached at runtime by EnemySpawner.
 /// </summary>
 public class EnemySpeedController : MonoBehaviour
 {
@@ -21,6 +16,7 @@ public class EnemySpeedController : MonoBehaviour
     NavMeshAgent _agent;
     Transform    _player;
 
+    // FIX: Start() and Update() were completely missing — the class was a dead stub.
     void Start()
     {
         _agent = GetComponent<NavMeshAgent>();
@@ -28,20 +24,18 @@ public class EnemySpeedController : MonoBehaviour
         GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
         if (playerObj != null) _player = playerObj.transform;
 
-        // Begin at full speed so the enemy charges in fast.
+        // Boot at full speed so the enemy charges hard from spawn.
         if (_agent != null) _agent.speed = maxSpeed;
     }
 
     void Update()
     {
-        if (_agent == null || _player == null) return;
+        // Only runs when on a valid NavMesh; no-op otherwise (LizardEnemy
+        // fallback movement handles speed directly via moveSpeed field).
+        if (_agent == null || _player == null || !_agent.isOnNavMesh) return;
 
         float dist = Vector3.Distance(transform.position, _player.position);
-
-        // t = 0 when at stopRadius (close)  → minSpeed
-        // t = 1 when at slowDownRadius (far) → maxSpeed
-        float t = Mathf.InverseLerp(stopRadius, slowDownRadius, dist);
-
+        float t    = Mathf.InverseLerp(stopRadius, slowDownRadius, dist);
         _agent.speed = Mathf.Lerp(minSpeed, maxSpeed, t);
     }
 }

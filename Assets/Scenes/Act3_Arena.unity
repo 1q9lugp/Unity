@@ -201,7 +201,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 749452db0474f59dfaa45ccc0d794e80, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0
+      value: -1
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 749452db0474f59dfaa45ccc0d794e80, type: 3}
       propertyPath: m_LocalPosition.z
@@ -432,6 +432,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a127f16cfd7a4c884be5d4063f77c710, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ArenaHUD
+  kills: 0
 --- !u!114 &430339795
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -555,11 +556,15 @@ MonoBehaviour:
   damage: 2
   bulletSpeed: 160
   bulletSize: 5
+  laserRange: 500
+  laserDamagePerTick: 1
+  laserTickRate: 0.08
+  laserBurstDuration: 8
   mouseSens: 2
   health: 100
   armor: 50
-  ammo: 2147483647
   gameOverScene: TitleScreen
+  laserTimeLeft: 0
 --- !u!143 &479848892
 CharacterController:
   m_ObjectHideFlags: 0
@@ -578,7 +583,7 @@ CharacterController:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Height: 1.8
+  m_Height: 2
   m_Radius: 0.5
   m_SlopeLimit: 45
   m_StepOffset: 0.3
@@ -594,7 +599,7 @@ Transform:
   m_GameObject: {fileID: 479848890}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -369.4352, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -973,12 +978,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpawner
   enemyScale: 10
-  enemyPrefab: {fileID: 2804749469011149029, guid: b2c26dbe40a1663f7a4c1d12851175b6, type: 3}
-  maxEnemies: 30
+  enemyPrefab: {fileID: 7772081511942700340, guid: 71880ff9ef17a944ea260d41e694cd01, type: 3}
+  maxEnemies: 150
   eliteChance: 0.2
-  minSpawnRadius: 40
-  spawnCircleResolution: 24
-  colliderCheckRadius: 1.2
+  minSpawnRadius: 200
+  maxSpawnRadius: 350
+  spawnArcDegrees: 90
+  spawnAttempts: 10
+  minEnemySpacing: 4
   maxSpeed: 45
   minSpeed: 3.5
   slowDownRadius: 22

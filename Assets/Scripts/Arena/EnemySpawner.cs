@@ -1,182 +1,193 @@
 using UnityEngine;
-using UnityEngine.AI;
 using System.Collections;
 using System.Collections.Generic;
 
-/// <summary>
-/// Spawns enemies in a circular ring at half the NavMesh-edge distance from
-/// the player. Each enemy starts with enormous speed that scales down
-/// smoothly as it approaches the player (handled by EnemySpeedController).
-/// </summary>
 public class EnemySpawner : MonoBehaviour
 {
-    // ── Visual / scale ────────────────────────────────────────────────────
     [Header("Scale")]
     public float enemyScale = 1f;
 
-    // ── Spawn config ──────────────────────────────────────────────────────
     [Header("Spawn Config")]
     public GameObject enemyPrefab;
     public int   maxEnemies  = 30;
     public float eliteChance = 0.2f;
 
-    [Tooltip("Minimum guaranteed spawn distance if the NavMesh edge is very close.")]
-    public float minSpawnRadius = 40f;
+    [Header("Spawn Distance")]
+    [Tooltip("Enemies never spawn closer than this to the player (units).")]
+    public float minSpawnRadius = 200f;   // was 50
+    [Tooltip("Enemies never spawn further than this from the player (units).")]
+    public float maxSpawnRadius = 350f;   // was 80
 
-    [Tooltip("How many angle slots to divide the circle into when looking for a free spot.")]
-    public int spawnCircleResolution = 24;
+    [Header("POV Arc")]
+    [Tooltip("Total horizontal arc (degrees) centred on camera forward in which enemies can appear. " +
+             "160 = ±80° — covers the full player FOV plus a little peripheral. " +
+             "Set to 360 to allow all directions.")]
+    public float spawnArcDegrees = 160f;
 
-    [Tooltip("Radius of the overlap-sphere check used to reject blocked spawn points.")]
-    public float colliderCheckRadius = 1.2f;
+    [Header("Attempt Budget")]
+    [Tooltip("How many random positions to try before falling back to a guaranteed safe one.")]
+    public int spawnAttempts = 40;
 
-    // ── Speed settings (fed to EnemySpeedController) ─────────────────────
-    [Header("Speed (Distance-Based)")]
-    [Tooltip("Speed when the enemy is at or beyond slowDownRadius from the player.")]
-    public float maxSpeed = 45f;
+    [Header("Enemy Spacing")]
+    [Tooltip("No new enemy spawns within this radius of an existing enemy.")]
+    public float minEnemySpacing = 4f;
 
-    [Tooltip("Speed when the enemy reaches the player's feet (stopRadius).")]
-    public float minSpeed = 3.5f;
-
-    [Tooltip("Distance at which slowdown begins.")]
+    [Header("Speed")]
+    public float maxSpeed       = 45f;
+    public float minSpeed       = 3.5f;
     public float slowDownRadius = 22f;
-
-    [Tooltip("Distance at which speed reaches minSpeed (melee range).")]
-    public float stopRadius = 2f;
+    public float stopRadius     = 2f;
 
     // ── Internal ──────────────────────────────────────────────────────────
     readonly HashSet<GameObject> _live = new HashSet<GameObject>();
+    Transform _playerTransform;
+    int       _pendingSpawns = 0;
+
+    // Ground-finding constants.
+    // Cast from this far ABOVE player Y so we go through the open arena
+    // top without reaching the distant safety-net plane (Zem at Y≈-370).
+    const float GroundCastUp   = 10f;
+    const float GroundCastDown = 25f;
 
     // ─────────────────────────────────────────────────────────────────────
-    void Start() => StartCoroutine(InitialSpawn());
+    void Start()
+    {
+        GameObject p = GameObject.FindGameObjectWithTag("Player");
+        if (p != null)
+            _playerTransform = p.transform;
+        else
+            Debug.LogError("[EnemySpawner] No GameObject tagged 'Player' found.");
+
+        StartCoroutine(InitialSpawn());
+    }
 
     IEnumerator InitialSpawn()
     {
-        yield return new WaitForSeconds(1f);
+        yield return new WaitForSeconds(1.5f);
         for (int i = 0; i < maxEnemies; i++)
         {
-            Spawn();
-            yield return new WaitForSeconds(0.02f);
+            DoSpawn();
+            yield return new WaitForSeconds(0.12f);
         }
     }
 
-    // Called by LizardEnemy (or death handler) when an enemy dies.
     public void OnEnemyDied(GameObject enemy)
     {
         if (enemy != null) _live.Remove(enemy);
-        Invoke(nameof(Spawn), Random.Range(0.5f, 1.5f));
+        _live.RemoveWhere(e => e == null);
+        int deficit = maxEnemies - _live.Count - _pendingSpawns;
+        if (deficit > 0)
+        {
+            _pendingSpawns++;
+            Invoke(nameof(SpawnFromQueue), Random.Range(2f, 5f));
+        }
     }
 
+    void SpawnFromQueue()
+    {
+        _pendingSpawns = Mathf.Max(0, _pendingSpawns - 1);
+        DoSpawn();
+    }
+
+    void OnDestroy() => CancelInvoke(nameof(SpawnFromQueue));
+
     // ── Core spawn ────────────────────────────────────────────────────────
-    void Spawn()
+    void DoSpawn()
     {
         _live.RemoveWhere(e => e == null);
-        if (_live.Count >= maxEnemies || enemyPrefab == null) return;
+        if (_live.Count >= maxEnemies) return;
+        if (enemyPrefab == null || _playerTransform == null) return;
 
-        Vector3 pos = GetSpawnPosition();
+        Vector3 pos = GetSpawnPos();
+        if (pos == Vector3.zero) return;
 
         GameObject go = Instantiate(enemyPrefab, pos, Quaternion.identity);
 
-        // Warp onto NavMesh if not already snapped.
-        NavMeshAgent agent = go.GetComponent<NavMeshAgent>();
-        if (agent != null && !agent.isOnNavMesh)
-            if (NavMesh.SamplePosition(pos, out NavMeshHit warpHit, 20f, NavMesh.AllAreas))
-                agent.Warp(warpHit.position);
+        var agent = go.GetComponent<UnityEngine.AI.NavMeshAgent>();
+        if (agent != null) agent.enabled = false;
 
-        // Elite chance.
-        LizardEnemy script = go.GetComponent<LizardEnemy>();
-        if (script != null) script.Setup(Random.value < eliteChance);
+        LizardEnemy lizard = go.GetComponent<LizardEnemy>();
+        if (lizard != null)
+            lizard.Setup(Random.value < eliteChance, enemyScale);
 
-        // Attach dynamic speed controller.
-        EnemySpeedController speedCtrl = go.AddComponent<EnemySpeedController>();
-        speedCtrl.maxSpeed      = maxSpeed;
-        speedCtrl.minSpeed      = minSpeed;
-        speedCtrl.slowDownRadius = slowDownRadius;
-        speedCtrl.stopRadius    = stopRadius;
+        EnemySpeedController sc = go.GetComponent<EnemySpeedController>();
+        if (sc == null) sc = go.AddComponent<EnemySpeedController>();
+        sc.maxSpeed       = maxSpeed;
+        sc.minSpeed       = minSpeed;
+        sc.slowDownRadius = slowDownRadius;
+        sc.stopRadius     = stopRadius;
 
-        go.transform.localScale *= enemyScale;
         _live.Add(go);
     }
 
-    // ── Spawn-position logic ──────────────────────────────────────────────
-    /// <summary>
-    /// Iterates evenly-spaced angles around the player in a circle.
-    /// For each direction it casts a NavMesh ray to the edge, then tries
-    /// to place the enemy at half that edge distance (clamped to
-    /// minSpawnRadius). Skips positions blocked by physics colliders.
-    /// Falls back to a simple radius sample if nothing clean is found.
-    /// </summary>
-    Vector3 GetSpawnPosition()
+    // ── Position finding ──────────────────────────────────────────────────
+    Vector3 GetSpawnPos()
     {
-        Transform player = GameObject.FindGameObjectWithTag("Player")?.transform;
-        Vector3   origin = player != null ? player.position : Vector3.zero;
+        Camera   cam     = Camera.main;
+        Vector3  forward = cam != null ? cam.transform.forward : _playerTransform.forward;
+        forward.y = 0f;
+        if (forward.sqrMagnitude < 0.001f) forward = Vector3.forward;
+        forward.Normalize();
 
-        // Shuffle starting angle so the ring doesn't look identical every wave.
-        float angleOffset = Random.Range(0f, Mathf.PI * 2f);
+        float baseAngle = Mathf.Atan2(forward.x, forward.z);
+        float halfArc   = spawnArcDegrees * 0.5f * Mathf.Deg2Rad;
 
-        for (int i = 0; i < spawnCircleResolution; i++)
+        for (int i = 0; i < spawnAttempts; i++)
         {
-            float   angle = angleOffset + (i / (float)spawnCircleResolution) * Mathf.PI * 2f;
-            Vector3 dir   = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle));
+            float angle = baseAngle + Random.Range(-halfArc, halfArc);
+            float dist  = Random.Range(minSpawnRadius, maxSpawnRadius);
 
-            // ① Find where the NavMesh ends in this direction.
-            float edgeDist = FindNavMeshEdgeDistance(origin, dir);
+            float cx = _playerTransform.position.x + Mathf.Sin(angle) * dist;
+            float cz = _playerTransform.position.z + Mathf.Cos(angle) * dist;
 
-            // ② Spawn at half of that distance, but at least minSpawnRadius.
-            float spawnDist = Mathf.Max(edgeDist * 0.5f, minSpawnRadius);
+            float groundY;
+            if (!TryGetGroundY(cx, cz, out groundY)) continue;
 
-            Vector3 candidate = origin + dir * spawnDist;
+            Vector3 spawnPos = new Vector3(cx, groundY + 1.5f, cz);
 
-            // ③ Project onto actual ground.
-            candidate.y = SampleGroundY(candidate, origin.y);
+            if (EnemyNearby(spawnPos, minEnemySpacing)) continue;
 
-            // ④ Snap to nearest NavMesh surface.
-            if (!NavMesh.SamplePosition(candidate, out NavMeshHit nh, 15f, NavMesh.AllAreas))
-                continue;
+            float xzDist = new Vector2(cx - _playerTransform.position.x,
+                                        cz - _playerTransform.position.z).magnitude;
+            if (xzDist < minSpawnRadius) continue;
 
-            // ⑤ Reject positions that overlap a physics collider (walls, props).
-            if (Physics.CheckSphere(nh.position + Vector3.up * 0.5f, colliderCheckRadius))
-                continue;
-
-            return nh.position;
+            return spawnPos;
         }
 
-        // Fallback: random point on a plain circle at minSpawnRadius.
-        return FallbackSpawnPosition(origin);
+        // Fallback
+        float fa  = baseAngle + Random.Range(-halfArc, halfArc);
+        float fx  = _playerTransform.position.x + Mathf.Sin(fa) * (minSpawnRadius + 5f);
+        float fz  = _playerTransform.position.z + Mathf.Cos(fa) * (minSpawnRadius + 5f);
+        float fgy = _playerTransform.position.y;
+        TryGetGroundY(fx, fz, out fgy);
+
+        return new Vector3(fx, fgy + 1.5f, fz);
     }
 
-    /// <summary>
-    /// Uses NavMesh.Raycast (which stops at holes/edges) to measure how far
-    /// the navmesh extends in the given horizontal direction.
-    /// </summary>
-    float FindNavMeshEdgeDistance(Vector3 origin, Vector3 direction)
+    // ── Helpers ───────────────────────────────────────────────────────────
+    bool TryGetGroundY(float x, float z, out float groundY)
     {
-        const float maxSearch = 600f;
-        Vector3 dest = origin + direction * maxSearch;
+        groundY = _playerTransform.position.y;
+        Vector3 rayOrigin = new Vector3(x, _playerTransform.position.y + GroundCastUp, z);
 
-        // NavMesh.Raycast returns true when it hits a boundary or hole.
-        if (NavMesh.Raycast(origin, dest, out NavMeshHit hit, NavMesh.AllAreas))
-            return Mathf.Max(hit.distance, minSpawnRadius * 2f);
+        if (Physics.Raycast(rayOrigin, Vector3.down, out RaycastHit hit, GroundCastDown))
+        {
+            if (hit.collider.gameObject.layer == 3) return false;
+            if (hit.collider.isTrigger)             return false;
 
-        return maxSearch; // Open navmesh – use the full search distance.
+            groundY = hit.point.y;
+            return true;
+        }
+
+        return false;
     }
 
-    float SampleGroundY(Vector3 xzPos, float fallbackY)
+    bool EnemyNearby(Vector3 centre, float radius)
     {
-        if (Physics.Raycast(new Vector3(xzPos.x, 500f, xzPos.z),
-                            Vector3.down, out RaycastHit rh, 1000f))
-            return rh.point.y;
-        return fallbackY;
-    }
-
-    Vector3 FallbackSpawnPosition(Vector3 origin)
-    {
-        float   angle     = Random.Range(0f, Mathf.PI * 2f);
-        Vector3 candidate = origin + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * minSpawnRadius;
-        candidate.y = SampleGroundY(candidate, origin.y);
-
-        if (NavMesh.SamplePosition(candidate, out NavMeshHit nh, 20f, NavMesh.AllAreas))
-            return nh.position;
-
-        return candidate;
+        Collider[] hits = Physics.OverlapSphere(centre, radius);
+        foreach (Collider c in hits)
+            if (c.GetComponent<LizardEnemy>() != null)
+                return true;
+        return false;
     }
 }
